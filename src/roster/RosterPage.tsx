@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import type { State, Student } from "../model";
 import { Empty, Modal } from "../ui";
-import { addRoom, removeRoom, saveStudent, setRosterStatus } from "./model";
+import { addRoom, removeRoom, removeStudents, saveStudent, setRosterStatus } from "./model";
 import { ImportStudents } from "./ImportStudents";
 import type { ImportRow } from "./importModel";
 import "./roster.css";
@@ -23,6 +23,7 @@ type Dialog =
   | { type: "import" }
   | { type: "student"; student?: Student }
   | { type: "archive" | "restore"; ids: string[] }
+  | { type: "deleteStudents"; ids: string[] }
   | { type: "removeRoom"; room: string }
   | null;
 type Commit = (state: State, message: string) => boolean;
@@ -36,6 +37,7 @@ type PersistStatus = (
   ids: string[],
   status: Student["status"],
 ) => Promise<State>;
+type PersistDeletion = (next: State, ids: string[]) => Promise<State>;
 
 export function RosterPage({
   state,
@@ -43,6 +45,7 @@ export function RosterPage({
   onCreateAccounts,
   onPersistStudent,
   onPersistStatus,
+  onPersistDeletion,
 }: {
   state: State;
   onSave: Commit;
@@ -53,6 +56,7 @@ export function RosterPage({
   ) => Promise<State>;
   onPersistStudent?: PersistStudent;
   onPersistStatus?: PersistStatus;
+  onPersistDeletion?: PersistDeletion;
 }) {
   const [room, setRoom] = useState(state.rooms[0] ?? "");
   const [query, setQuery] = useState("");
@@ -60,6 +64,7 @@ export function RosterPage({
   const [selected, setSelected] = useState<string[]>([]);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
   const selectAll = useRef<HTMLInputElement>(null);
   const currentRoom = state.rooms.includes(room)
     ? room
@@ -87,6 +92,8 @@ export function RosterPage({
     setDialog(next);
   }
   async function confirm() {
+    if (busy) return;
+    setBusy(true);
     try {
       if (!dialog) return;
       let next =
@@ -98,6 +105,8 @@ export function RosterPage({
                 dialog.ids,
                 dialog.type === "archive" ? "archived" : "active",
               )
+            : dialog.type === "deleteStudents"
+              ? removeStudents(state, dialog.ids)
             : null;
       if (next && (dialog.type === "archive" || dialog.type === "restore") && onPersistStatus) {
         next = await onPersistStatus(
@@ -105,6 +114,9 @@ export function RosterPage({
           dialog.ids,
           dialog.type === "archive" ? "archived" : "active",
         );
+      }
+      if (next && dialog.type === "deleteStudents" && onPersistDeletion) {
+        next = await onPersistDeletion(next, dialog.ids);
       }
       if (
         next &&
@@ -121,6 +133,8 @@ export function RosterPage({
         setError("บันทึกไม่สำเร็จ รายชื่อยังไม่ถูกเปลี่ยน กรุณาลองอีกครั้ง");
     } catch (e) {
       setError(e instanceof Error ? e.message : "เปลี่ยนรายชื่อไม่สำเร็จ");
+    } finally {
+      setBusy(false);
     }
   }
   return (
@@ -270,6 +284,14 @@ export function RosterPage({
                 ? "พักรายชื่อที่เลือก"
                 : "คืนรายชื่อที่เลือก"}
             </button>
+            <button
+              className="button coral"
+              disabled={!selectedVisible.length || busy}
+              onClick={() => open({ type: "deleteStudents", ids: selectedVisible })}
+            >
+              <Trash2 size={17} />
+              ลบรายชื่อ
+            </button>
           </div>
           <div className="roster-list">
             {roster.map((s) => (
@@ -306,6 +328,14 @@ export function RosterPage({
                   onClick={() => open({ type: "student", student: s })}
                 >
                   <Pencil size={17} />
+                </button>
+                <button
+                  className="icon-button danger"
+                  aria-label={`ลบ ${s.name}`}
+                  title="ลบรายชื่อ"
+                  onClick={() => open({ type: "deleteStudents", ids: [s.id] })}
+                >
+                  <Trash2 size={17} />
                 </button>
               </article>
             ))}
@@ -374,11 +404,13 @@ export function RosterPage({
           }}
         />
       )}
-      {dialog && ["archive", "restore", "removeRoom"].includes(dialog.type) && (
+      {dialog && ["archive", "restore", "removeRoom", "deleteStudents"].includes(dialog.type) && (
         <Modal
           title={
             dialog.type === "removeRoom"
               ? `ลบห้อง ${dialog.room}?`
+              : dialog.type === "deleteStudents"
+                ? "ลบรายชื่อที่เลือก?"
               : dialog.type === "archive"
                 ? "พักรายชื่อที่เลือก?"
                 : "คืนรายชื่อที่เลือก?"
@@ -389,9 +421,11 @@ export function RosterPage({
             <p>
               {dialog.type === "removeRoom"
                 ? "ลบได้เฉพาะห้องว่างที่ไม่มีนักเรียนหรือประวัติงาน"
+                : dialog.type === "deleteStudents"
+                  ? "รายชื่อจะถูกนำออกจากห้องเรียน บัญชีจะถูกพักไว้ และคะแนนกับประวัติงานเดิมจะยังเก็บไว้"
                 : "งาน คะแนน และอวตาร์เดิมจะยังอยู่ครบ สามารถคืนรายชื่อกลับมาใช้งานได้"}
             </p>
-            {(dialog.type === "archive" || dialog.type === "restore") && (
+            {(dialog.type === "archive" || dialog.type === "restore" || dialog.type === "deleteStudents") && (
               <ul className="roster-confirm-names">
                 {dialog.ids.map((id) => (
                   <li key={id}>
@@ -407,14 +441,17 @@ export function RosterPage({
             )}
           </div>
           <div className="modal-actions">
-            <button className="button neutral" onClick={() => setDialog(null)}>
+            <button className="button neutral" disabled={busy} onClick={() => setDialog(null)}>
               ยกเลิก
             </button>
-              <button className="button coral" onClick={confirm}>
+              <button className="button coral" disabled={busy} onClick={confirm}>
               <Check size={17} />
-              ยืนยัน
+              {busy && <span className="loading-spinner" aria-hidden="true" />}
+              {busy ? "กำลังบันทึก " : "ยืนยัน "}
               {dialog.type === "removeRoom"
                 ? "ลบห้อง"
+                : dialog.type === "deleteStudents"
+                  ? "ลบรายชื่อ"
                 : dialog.type === "archive"
                   ? "พักรายชื่อ"
                   : "คืนรายชื่อ"}

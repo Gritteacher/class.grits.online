@@ -159,3 +159,14 @@ export function setRosterStatus(
   }
   return { ...state, students };
 }
+
+export function removeStudents(state: State, ids: string[]): State {
+  const unique = [...new Set(ids)];
+  if (!unique.length || unique.some((id) => !state.students.some((s) => s.id === id))) {
+    throw new Error("เลือกรายชื่อที่มีอยู่ก่อน");
+  }
+  return {
+    ...state,
+    students: state.students.filter((student) => !unique.includes(student.id)),
+  };
+}

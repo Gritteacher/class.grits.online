@@ -215,6 +215,38 @@ export async function updateStudentStatusInSupabase(
   if (error) throw new Error("บันทึกสถานะรายชื่อไม่สำเร็จ");
 }
 
+export async function removeStudentsFromClassroom(
+  teacherId: string,
+  studentIds: string[],
+) {
+  if (!studentIds.length) throw new Error("เลือกรายชื่อก่อน");
+  const { data: classrooms, error: classroomError } = await supabase
+    .from("classrooms")
+    .select("id")
+    .eq("teacher_id", teacherId);
+  if (classroomError || !classrooms?.length) throw new Error("ไม่พบห้องเรียนของครู");
+  const classroomIds = classrooms.map((classroom) => classroom.id);
+  const { data: members, error: memberError } = await supabase
+    .from("classroom_members")
+    .select("classroom_id, student_id")
+    .in("classroom_id", classroomIds)
+    .in("student_id", studentIds);
+  if (memberError || !members?.length) throw new Error("ไม่พบรายชื่อในห้องของครู");
+  const allowedIds = [...new Set(members.map((member) => member.student_id))];
+  const { error: removeError } = await supabase
+    .from("classroom_members")
+    .delete()
+    .in("classroom_id", classroomIds)
+    .in("student_id", allowedIds);
+  if (removeError) throw new Error("ลบรายชื่อออกจากห้องไม่สำเร็จ");
+  const { error: archiveError } = await supabase
+    .from("profiles")
+    .update({ status: "archived" })
+    .in("id", allowedIds)
+    .eq("role", "student");
+  if (archiveError) throw new Error("ลบรายชื่อสำเร็จ แต่ปรับสถานะบัญชีไม่สำเร็จ");
+}
+
 export async function getTeacherClassroomId(teacherId: string, roomName: string) {
   const { data: byRoom, error: roomError } = await supabase
     .from("classrooms")

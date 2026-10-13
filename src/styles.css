@@ -132,6 +132,22 @@ button {
 button:active:not(:disabled) {
   transform: translateY(1px);
 }
+
+.loading-spinner {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-inline: 0.1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: loading-spin 0.7s linear infinite;
+  vertical-align: -0.12em;
+}
+
+@keyframes loading-spin {
+  to { transform: rotate(360deg); }
+}
 a {
   color: var(--teal-dark);
 }
