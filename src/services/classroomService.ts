@@ -247,6 +247,31 @@ export async function removeStudentsFromClassroom(
   if (archiveError) throw new Error("ลบรายชื่อสำเร็จ แต่ปรับสถานะบัญชีไม่สำเร็จ");
 }
 
+export async function removeClassroomFromSupabase(
+  teacherId: string,
+  roomName: string,
+) {
+  const classroomId = await getTeacherClassroomId(teacherId, roomName);
+  const { count: memberCount, error: memberError } = await supabase
+    .from("classroom_members")
+    .select("student_id", { count: "exact", head: true })
+    .eq("classroom_id", classroomId);
+  if (memberError) throw new Error("ตรวจสอบสมาชิกห้องไม่สำเร็จ");
+  if (memberCount) throw new Error("ลบไม่ได้ เพราะห้องนี้ยังมีรายชื่ออยู่");
+  const { count: assignmentCount, error: assignmentError } = await supabase
+    .from("assignment_classrooms")
+    .select("assignment_id", { count: "exact", head: true })
+    .eq("classroom_id", classroomId);
+  if (assignmentError) throw new Error("ตรวจสอบงานของห้องไม่สำเร็จ");
+  if (assignmentCount) throw new Error("ลบไม่ได้ เพราะห้องนี้ยังมีงานที่มอบหมายอยู่");
+  const { error } = await supabase
+    .from("classrooms")
+    .delete()
+    .eq("id", classroomId)
+    .eq("teacher_id", teacherId);
+  if (error) throw new Error("ลบห้องเรียนไม่สำเร็จ");
+}
+
 export async function getTeacherClassroomId(teacherId: string, roomName: string) {
   const { data: byRoom, error: roomError } = await supabase
     .from("classrooms")

@@ -38,6 +38,7 @@ type PersistStatus = (
   status: Student["status"],
 ) => Promise<State>;
 type PersistDeletion = (next: State, ids: string[]) => Promise<State>;
+type PersistRoomDeletion = (next: State, room: string) => Promise<State>;
 
 export function RosterPage({
   state,
@@ -46,6 +47,7 @@ export function RosterPage({
   onPersistStudent,
   onPersistStatus,
   onPersistDeletion,
+  onPersistRoomDeletion,
 }: {
   state: State;
   onSave: Commit;
@@ -57,6 +59,7 @@ export function RosterPage({
   onPersistStudent?: PersistStudent;
   onPersistStatus?: PersistStatus;
   onPersistDeletion?: PersistDeletion;
+  onPersistRoomDeletion?: PersistRoomDeletion;
 }) {
   const [room, setRoom] = useState(state.rooms[0] ?? "");
   const [query, setQuery] = useState("");
@@ -117,6 +120,9 @@ export function RosterPage({
       }
       if (next && dialog.type === "deleteStudents" && onPersistDeletion) {
         next = await onPersistDeletion(next, dialog.ids);
+      }
+      if (next && dialog.type === "removeRoom" && onPersistRoomDeletion) {
+        next = await onPersistRoomDeletion(next, dialog.room);
       }
       if (
         next &&

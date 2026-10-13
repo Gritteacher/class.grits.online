@@ -74,6 +74,7 @@ import {
   getTeacherClassroomId,
   loadStudentProfile,
   loadTeacherRoster,
+  removeClassroomFromSupabase,
   removeStudentsFromClassroom,
   updateStudentInSupabase,
   updateStudentStatusInSupabase,
@@ -392,6 +393,12 @@ export function App() {
     await removeStudentsFromClassroom(identity.profile.id, ids);
     const roster = await loadTeacherRoster(identity.profile.id);
     return applyTeacherRoster(next, roster);
+  }
+  async function persistRoomDeletion(next: State, room: string): Promise<State> {
+    if (!identity || identity.profile.role !== "teacher")
+      throw new Error("กรุณาเข้าสู่ระบบครูก่อน");
+    await removeClassroomFromSupabase(identity.profile.id, room);
+    return next;
   }
   async function syncRealAssignments(previous: State, next: State) {
     if (!identity || identity.profile.role !== "teacher") return;
@@ -713,6 +720,7 @@ export function App() {
               onPersistStudent={identity ? persistStudentToSupabase : undefined}
               onPersistStatus={identity ? persistStudentStatusToSupabase : undefined}
               onPersistDeletion={identity ? persistStudentDeletion : undefined}
+              onPersistRoomDeletion={identity ? persistRoomDeletion : undefined}
             />
           ) : page === "today" ? (
             <TeacherHome
