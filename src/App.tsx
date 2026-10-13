@@ -630,8 +630,8 @@ export function App() {
           {menu.map((item) => (
             <button
               key={item.key}
-              className={page === item.key ? "active" : ""}
-              aria-current={page === item.key ? "page" : undefined}
+              className={page === item.key && !moreOpen ? "active" : ""}
+              aria-current={page === item.key && !moreOpen ? "page" : undefined}
               aria-label={item.title}
               title={item.title}
               onClick={() => navigate(item.key)}
