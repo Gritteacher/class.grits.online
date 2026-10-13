@@ -18,6 +18,24 @@
   padding: 10px;
   margin-right: 8px;
 }
+.roster-template-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-alt);
+}
+.roster-template-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.roster-template-actions .muted {
+  font-size: 12px;
+}
 .import-file-name {
   display: flex;
   gap: 8px;

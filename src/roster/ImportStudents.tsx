@@ -3,12 +3,14 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Download,
   FileSpreadsheet,
   Upload,
 } from "lucide-react";
 import type { State } from "../model";
 import { Modal } from "../ui";
 import { readSpreadsheet } from "./readSpreadsheet";
+import { downloadRosterTemplate } from "./excel";
 import {
   fieldLabels,
   guessHeader,
@@ -173,6 +175,19 @@ export function ImportStudents({
               }}
             />
           </label>
+        </div>
+        <div className="roster-template-actions">
+          <button
+            type="button"
+            className="button neutral roster-template-button"
+            onClick={downloadRosterTemplate}
+          >
+            <Download size={17} />
+            ดาวน์โหลดไฟล์ต้นแบบ
+          </button>
+          <span className="muted">
+            ใช้หัวตาราง เลขที่ · เลขประจำตัว · คำนำหน้า · ชื่อ · สกุล
+          </span>
         </div>
         {onCreateAccounts && (
           <label>

@@ -1,4 +1,4 @@
-import { read, utils, set_cptable } from "xlsx";
+import { read, utils, set_cptable, writeFile } from "xlsx";
 import * as cptable from "xlsx/dist/cpexcel.full.mjs";
 import {
   MAX_IMPORT_BYTES,
@@ -10,6 +10,36 @@ import {
 
 // Legacy XLS files may store Thai text in Windows-874 rather than Unicode.
 set_cptable(cptable);
+
+export function downloadRosterTemplate() {
+  const workbook = utils.book_new();
+  const roster = utils.aoa_to_sheet([
+    ["เลขที่", "เลขประจำตัว", "คำนำหน้า", "ชื่อ", "สกุล"],
+  ]);
+  roster["!cols"] = [
+    { wch: 10 },
+    { wch: 18 },
+    { wch: 14 },
+    { wch: 22 },
+    { wch: 22 },
+  ];
+  utils.book_append_sheet(workbook, roster, "รายชื่อนักเรียน");
+
+  const guide = utils.aoa_to_sheet([
+    ["คำแนะนำการนำเข้ารายชื่อนักเรียน"],
+    ["กรอกข้อมูลในชีต รายชื่อนักเรียน แล้วบันทึกเป็นไฟล์ .xlsx หรือ .xls"],
+    ["เลขที่", "ลำดับของนักเรียนในห้อง เช่น 1, 2, 3"],
+    ["เลขประจำตัว", "รหัสนักเรียน ควรตั้งคอลัมน์เป็นข้อความเพื่อเก็บเลข 0 ด้านหน้า"],
+    ["คำนำหน้า", "เช่น เด็กชาย, เด็กหญิง, นาย, นางสาว (ไม่บังคับ)"],
+    ["ชื่อ", "ชื่อของนักเรียน"],
+    ["สกุล", "นามสกุลของนักเรียน"],
+    ["ข้อควรระวัง", "ห้ามลบหรือเปลี่ยนชื่อหัวตารางในชีต รายชื่อนักเรียน"],
+  ]);
+  guide["!cols"] = [{ wch: 24 }, { wch: 84 }];
+  utils.book_append_sheet(workbook, guide, "คำแนะนำ");
+
+  writeFile(workbook, "ต้นแบบรายชื่อนักเรียน.xlsx");
+}
 
 export function parseWorkbook(bytes: ArrayBuffer): ImportSheet[] {
   if (!bytes.byteLength || bytes.byteLength > MAX_IMPORT_BYTES)
