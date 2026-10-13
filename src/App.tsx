@@ -15,7 +15,6 @@ import {
   Moon,
   MoreHorizontal,
   Plus,
-  RotateCcw,
   Send,
   Sprout,
   Sun,
@@ -30,13 +29,11 @@ import {
   type State,
   type Submission,
   type Student,
-  demoStudent,
+  emptyState,
   formatDate,
-  loadState,
   persist,
   review,
   safeLink,
-  seed,
 } from "./model";
 import { Modal, Status } from "./ui";
 import { Results, TeacherHome, Workspace } from "./Teacher";
@@ -65,12 +62,6 @@ import {
   gradePoints,
   type GradeEntry,
 } from "./grading/model";
-import {
-  readSession,
-  writeSession,
-  validSession,
-  type PreviewSession,
-} from "./preview/session";
 import {
   getCurrentIdentity,
   signOut,
@@ -107,19 +98,14 @@ import {
 type Page = "today" | "workspace" | "results" | "growth" | "roster" | "resources" | "reports";
 type Notice = { text: string; error?: boolean } | null;
 export function App() {
-  const [state, setState] = useState<State>(loadState);
-  const [session, setSession] = useState<PreviewSession | null>(() =>
-    readSession(state),
-  );
+  const [state, setState] = useState<State>(emptyState);
   const [identity, setIdentity] = useState<AuthIdentity | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const role = identity?.profile.role ?? session?.role ?? "teacher";
-  const [studentId, setStudentId] = useState(() =>
-    session?.role === "student" ? session.studentId : demoStudent.id,
-  );
+  const role = identity?.profile.role ?? "teacher";
+  const [studentId, setStudentId] = useState("");
   const [loginRole, setLoginRole] = useState<"teacher" | "student">("teacher");
   const [page, setPage] = useState<Page>("today");
-  const [activeId, setActiveId] = useState("a1");
+  const [activeId, setActiveId] = useState("");
   const [dark, setDark] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
@@ -130,7 +116,6 @@ export function App() {
   const [now, setNow] = useState(Date.now);
   const [preview, setPreview] = useState<Submission | null>(null);
   const [submitTask, setSubmitTask] = useState<Assignment | null>(null);
-  const [reset, setReset] = useState(false);
   const [gradeTarget, setGradeTarget] = useState<{
     studentId: string;
     assignmentId: string;
@@ -146,10 +131,6 @@ export function App() {
     state.students.find((s) => s.id === studentId) ?? state.students[0];
   useEffect(() => {
     let mounted = true;
-    if (session) {
-      setAuthLoading(false);
-      return;
-    }
     void (async () => {
       try {
         const { data } = await supabase.auth.getSession();
@@ -298,27 +279,10 @@ export function App() {
     setDeleting(null);
     setPreview(null);
     setSubmitTask(null);
-    setReset(false);
     setGradeTarget(null);
     setReviewOverride(null);
     setNotice(null);
     navigate("today");
-  }
-  function enterPreview(next: PreviewSession) {
-    if (!validSession(state, next)) {
-      leavePreview("student");
-      return;
-    }
-    clearView();
-    if (next.role === "student") setStudentId(next.studentId);
-    setSession(next);
-    writeSession(next);
-  }
-  function leavePreview(nextRole: "teacher" | "student" = role) {
-    clearView();
-    setLoginRole(nextRole);
-    setSession(null);
-    writeSession(null);
   }
   async function leaveAccount() {
     try {
@@ -339,8 +303,6 @@ export function App() {
     if (!current) throw new Error("บัญชีนี้ยังไม่มีโปรไฟล์ในระบบ");
     setIdentity(current);
     if (current.profile.role === "student") setStudentId(current.profile.id);
-    setSession(null);
-    writeSession(null);
   }
   async function createImportedAccounts(
     room: string,
@@ -579,7 +541,7 @@ export function App() {
         </div>
       </div>
     );
-  if (!identity && (!session || !validSession(state, session)))
+  if (!identity)
     return (
       <PreviewLogin
         dark={dark}
@@ -587,6 +549,15 @@ export function App() {
         initialRole={loginRole}
         onAuthenticated={refreshIdentity}
       />
+    );
+  if (role === "student" && !student)
+    return (
+      <div className="preview-login auth-loading" role="status">
+        <div className="preview-login-main">
+          <img className="preview-school-logo" src="/school-logo.png" alt="" />
+          <p>กำลังโหลดข้อมูลนักเรียน...</p>
+        </div>
+      </div>
     );
   const menu = [
     {
@@ -611,39 +582,6 @@ export function App() {
   ];
   return (
     <div className="app-shell">
-      {!identity && <div className="prototype-bar">
-        <div className="prototype-label">
-          <FlaskConical size={13} />
-          <span>ต้นแบบ · ข้อมูลสมมติ</span>
-        </div>
-        <div className="role-switch" role="group" aria-label="สลับมุมมองต้นแบบ">
-          <button
-            aria-pressed={role === "teacher"}
-            onClick={() => {
-              enterPreview({ role: "teacher" });
-            }}
-          >
-            มุมครู
-          </button>
-          <button
-            aria-pressed={role === "student"}
-            onClick={() => {
-              enterPreview({ role: "student", studentId });
-            }}
-          >
-            มุมนักเรียน
-          </button>
-        </div>
-        <button
-          className="reset-button"
-          title="คืนค่าข้อมูลจำลอง"
-          aria-label="คืนค่าข้อมูลจำลอง"
-          onClick={() => setReset(true)}
-        >
-          <RotateCcw size={14} />
-          <span>เริ่มใหม่</span>
-        </button>
-      </div>}
       <header className="site-header">
         <div className="header-inner">
           <button
@@ -680,7 +618,7 @@ export function App() {
               className="icon-button logout-button"
               title="ออกจากระบบ"
               aria-label="ออกจากระบบ"
-              onClick={() => (identity ? void leaveAccount() : leavePreview())}
+              onClick={() => void leaveAccount()}
             >
               <LogOut size={19} />
             </button>
@@ -724,33 +662,6 @@ export function App() {
           </div>
         )}
       </aside>
-      {role === "student" && !identity && (
-        <div className="preview-identity">
-          <label>
-            นักเรียนจำลอง
-            <select
-              aria-label="สลับนักเรียนจำลอง"
-              value={studentId}
-              onChange={(e) =>
-                enterPreview({ role: "student", studentId: e.target.value })
-              }
-            >
-              {state.students
-                .filter((s) => s.status === "active")
-                .sort(
-                  (a, b) =>
-                    a.room.localeCompare(b.room, "th", { numeric: true }) ||
-                    a.number - b.number,
-                )
-                .map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} · {s.room} · {s.code}
-                  </option>
-                ))}
-            </select>
-          </label>
-        </div>
-      )}
       <main className="main-content" key={`${role}:${studentId}`}>
         {page === "reports" && role === "teacher" ? (
           <ReportsPage state={state} />
@@ -1120,42 +1031,6 @@ export function App() {
             return false;
           }}
         />
-      )}
-      {reset && (
-        <Modal title="เริ่มข้อมูลจำลองใหม่?" onClose={() => setReset(false)}>
-          <div className="modal-body">
-            <p>
-              คะแนน งาน ไฟล์ คะแนนเสริมแรง
-              และอวตาร์ที่ทดลองเพิ่มในต้นแบบนี้จะถูกแทนที่ด้วยชุดเริ่มต้น
-              ไม่มีผลต่อเว็บไซต์จริง
-            </p>
-          </div>
-          <div className="modal-actions">
-            <button className="button neutral" onClick={() => setReset(false)}>
-              ยกเลิก
-            </button>
-            <button
-              className="button coral"
-              onClick={() => {
-                if (commit(seed(), "คืนค่าข้อมูลจำลองแล้ว")) {
-                  setReset(false);
-                  setActiveId("a1");
-                  setStudentId(demoStudent.id);
-                  const nextSession: PreviewSession =
-                    role === "teacher"
-                      ? { role: "teacher" }
-                      : { role: "student", studentId: demoStudent.id };
-                  setSession(nextSession);
-                  writeSession(nextSession);
-                  navigate("today");
-                }
-              }}
-            >
-              <RotateCcw size={17} />
-              ยืนยันเริ่มใหม่
-            </button>
-          </div>
-        </Modal>
       )}
     </div>
   );
@@ -1711,7 +1586,7 @@ function SubmitWork({
       !["application/pdf", "image/png", "image/jpeg"].includes(value.type) ||
       value.size > 2 * 1024 * 1024
     ) {
-      setError("เลือก PDF, PNG หรือ JPG ขนาดไม่เกิน 2 MB สำหรับต้นแบบ");
+      setError("เลือก PDF, PNG หรือ JPG ขนาดไม่เกิน 2 MB");
       return;
     }
     setReading(true);
@@ -1839,7 +1714,7 @@ function SubmitWork({
               <strong>
                 {reading
                   ? "กำลังอ่านไฟล์..."
-                  : file?.name || "เลือกไฟล์ตัวอย่าง"}
+                  : file?.name || "เลือกไฟล์"}
               </strong>
               <span>PDF, PNG, JPG · ไม่เกิน 2 MB</span>
               <input

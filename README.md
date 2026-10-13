@@ -1,6 +1,6 @@
-# ห้องเรียนสังคมครูไต๋: ต้นแบบประสบการณ์ใหม่
+# ห้องเรียนสังคมครูไต๋
 
-Interactive classroom prototype with a Supabase integration layer. The UI still contains a safe local preview mode, while real teacher authentication, classroom loading, assignments, submissions and score persistence use the configured Supabase project. Do not use the preview mode or sample data for real student records.
+Production classroom application using Vite, React, TypeScript, Supabase and Netlify Functions. Authentication, classroom data, assignments, submissions, scores and resources are loaded from the configured Supabase project. There is no local demo login or mock-data mode in the production UI.
 
 ## Run
 
@@ -9,7 +9,7 @@ npm ci
 npm run dev -- --port 4317 --strictPort
 ```
 
-Open http://127.0.0.1:4317/. Node.js 24 is used for this prototype.
+Open http://127.0.0.1:4317/ for local development. Netlify builds with Node.js 22 in CI.
 
 ## Verify
 
@@ -23,14 +23,13 @@ npm test
 ## Included
 
 - New teacher desk, integrated assignment/review workspace, student home, and score view.
-- Teacher/student preview switch, classroom/search filters, pending/reviewed/missing tabs.
-- Mock login with teacher/student roles, student-code lookup, classroom-filtered sample picker, in-app student switching, and logout. Each student view, submission, score and avatar uses the selected stable roster ID. Active entries only can enter the student preview; no passwords are requested or stored.
+- Supabase login with teacher/student roles, student-code lookup, classroom/search filters, pending/reviewed/missing tabs.
 - Create one assignment group for selected rooms. Each room receives its own stable assignment record, while teacher lists keep the records visually grouped.
 - Edit one or several rooms from the same dialog, with a room-by-room impact summary, per-student before/after grade previews, stale-edit checks, and explicit confirmation when a grading scale changes. Unselected rooms remain unchanged. Existing raw grades are preserved; scales below an existing raw grade are rejected. Each room retains its own audit snapshot.
-- Thai-time opening/deadline controls, optional late acceptance, live student availability and a second deadline check at submission. Existing prototype assignments retain their previous late-accepting behavior until edited.
+- Thai-time opening/deadline controls, optional late acceptance, live student availability and a second deadline check at submission.
 - Return work with a required correction note and separate resubmission deadline. Students send a new revision, keeping previous files, links, responses and review history. Last published grades stay visible while corrections are pending and are replaced only after a new review.
-- Student text, link, and sample PDF/image submission, with teacher preview and shared score totals.
-- Local preview persistence, confirm-before-reset, light/dark themes, responsive desktop/tablet/mobile layouts.
+- Student text, link, and PDF/image submission, with teacher preview and shared score totals.
+- Persistent Supabase data, light/dark themes, and responsive desktop/tablet/mobile layouts.
 - Supabase teacher authentication, teacher roster loading, assignment persistence, student submissions, signed file URLs, review scores and direct score editing.
 - Rounded floating glass navigation dock at the bottom on desktop, tablet and mobile, with space reserved for the dock and device safe areas. Existing Flip7 colors and workflows remain intact.
 - Independent grade ledger: teachers can record scores without submissions, with required reasons, revision checks, and score history. Review results update the same ledger; replacing a manually entered score requires confirmation.
@@ -40,19 +39,15 @@ npm test
 - Teacher classroom/roster menu: add naturally sorted rooms, add/edit/search students, filtered bulk selection, confirmed archive/restore, and guarded empty-room deletion. Student codes retain leading zeros and are unique even across archived names. New students start with zero reinforcement and no invented observations.
 - Excel roster import (`.xls` / `.xlsx`) with destination room, sheet/header selection, automatic or manual column mapping, row preview, explicit exclusions, and a single confirmed local save. Imports create new students and default avatars without overwriting existing students or academic/growth records.
 
-Preview changes are stored only in this browser under `grits.flip7.prototype.v1`. Real authenticated work is stored in Supabase. Local storage is not secure storage and is not a production database.
+Authenticated data is stored in Supabase. Local storage is used only for non-sensitive UI state and is not an authority for student records. Read `src/growth/README.md` for calculation rules and boundaries.
 
-Existing local saves gain the editable roster and growth slices without replacing academic assignments or submissions. Reset includes roster and growth data. Read `src/growth/README.md` for calculation rules and boundaries.
-
-Roster archival retains the stable student ID, room, submissions, grades, growth history and avatar. Archived students remain visible to teachers in historical score/review/growth views but are excluded from active enrollment, missing-work counts and student login. Restoring a duplicate roll number requires editing that number first. Room moves are blocked once a student has submissions or grades: historical enrollment must be implemented before enabling that migration. Adding a roster entry makes it selectable in mock login but does not create an authentication account. Use fictional data only.
-
-The preview remembers the selected identity in `sessionStorage` (`grits.flip7.preview-session.v1`) so reloads in the same tab retain it. Logout removes this selection, not the classroom data. The role switch and student selector are developer-preview controls, not access control; all mock data still lives in local storage. This is not secure authentication, and student-data protection will require server authentication and RLS before using real students. Storage-restricted browsers can preview in memory without session persistence.
+Roster archival retains the stable student ID, room, submissions, grades, growth history and avatar. Archived students remain visible to teachers in historical score/review/growth views but are excluded from active enrollment, missing-work counts and student login. Restoring a duplicate roll number requires editing that number first. Room moves are blocked once a student has submissions or grades until historical enrollment migration is implemented.
 
 ## Current implementation boundary
 
-Materials, announcements, roster import, assignments, submissions, review scores, download history, growth preview, classroom reports, Excel export, and printable PDF reports are implemented. The production cleanup function removes reviewed submission files after seven days while retaining score and submission metadata. Schedule checks still use the device clock; authoritative scheduling and multi-tab concurrency are not implemented.
+Materials, announcements, roster import, assignments, submissions, review scores, download history, growth records, classroom reports, Excel export, and printable PDF reports are implemented. The cleanup function removes reviewed submission files after seven days while retaining score and submission metadata. Schedule checks still use the device clock; authoritative scheduling and multi-tab concurrency are not implemented.
 
-The following are intentionally out of scope for this version: realtime chat, AI assistant/grading, and online worksheet/PDF writing. Server-backed reward records and full production deployment verification remain follow-up work. Growth events, observations, avatars, and group submissions use the new Supabase migrations when applied.
+The following are intentionally out of scope for this version: realtime chat, AI assistant/grading, and online worksheet/PDF writing. Growth events, observations, avatars, and group submissions use the Supabase schema and migrations when applied.
 
 ## Excel roster import
 
@@ -62,7 +57,7 @@ Limits: 5 MB per file, 30 sheets, 1,000 rows including headers and 50 columns pe
 
 Store student codes as text in Excel, especially leading zeros or codes longer than 15 digits. Zero-padding number formats are preserved when available; zeros already removed by Excel cannot be reconstructed. Password-protected, corrupt, and HTML/CSV files renamed to `.xls` are rejected. Macros are not executed and formula cells are not evaluated or accepted as mapped roster fields.
 
-Parsing runs in a cancellable worker with a 15-second timeout. SheetJS CE 0.20.3 is pinned to its [official distribution](https://docs.sheetjs.com/docs/getting-started/installation/frameworks/); parser/codepage files are bundled locally, not fetched from a CDN during use. Validation reuses the individual-student rules and repeats against the current state immediately before saving. A failed local-storage write retains the preview and leaves the previous roster intact. Workbook bytes are not saved or sent anywhere. This remains a prototype: use fictional student files, not real personal data.
+Parsing runs in a cancellable worker with a 15-second timeout. SheetJS CE 0.20.3 is pinned to its [official distribution](https://docs.sheetjs.com/docs/getting-started/installation/frameworks/); parser/codepage files are bundled locally, not fetched from a CDN during use. Validation reuses the individual-student rules and repeats against the current state immediately before saving. A failed local-storage write retains the preview and leaves the previous roster intact. Workbook bytes are not saved or sent anywhere.
 
 ## Assignment lifecycle
 
@@ -74,7 +69,7 @@ The first submission and the deadline in force at that time drive the punctualit
 
 The earlier system draft remains a source of business requirements, not a mandate to reuse old screens. The new interface uses the supplied Flip7 design language: teal, gold, coral, tactile controls, restrained colored shadows, and rounded repeated items. At the user's request, navigation now uses a rounded glass dock at the bottom on every screen size. It replaces the desktop sidebar and the mobile second header row. Teachers work from an assignment context, with submissions and grading together; students work from their next task.
 
-Source layout: `model.ts` owns preview contracts/calculation/review validation; `Teacher.tsx` and `Student.tsx` own role-specific views; `ui.tsx` holds common components; `App.tsx` composes navigation and dialogs; `src/services/` owns Supabase reads and writes. Keep preview and real-data paths separate.
+Source layout: `model.ts` owns calculation/review validation; `Teacher.tsx` and `Student.tsx` own role-specific views; `ui.tsx` holds common components; `App.tsx` composes navigation and dialogs; `src/services/` owns Supabase reads and writes.
 
 ## Independent grades
 

@@ -264,6 +264,26 @@ export function seed(): State {
     gradeEvents: [],
   });
 }
+
+// The authenticated application starts with no local academic records. The
+// signed-in user's classrooms, roster, work and resources are loaded from
+// Supabase before they are shown. `seed()` remains available to pure model
+// tests and migration tooling, but is never used as production UI state.
+export function emptyState(): State {
+  return withRoomAssignments({
+    version: 1,
+    rooms: [],
+    students: [],
+    growth: seedGrowth([]),
+    assignments: [],
+    submissions: [],
+    grades: [],
+    gradeEvents: [],
+    materials: [],
+    announcements: [],
+    downloadLogs: [],
+  });
+}
 export function points(submission: Submission, assignment: Assignment) {
   return submission.score !== null
     ? Math.round((submission.score / assignment.rawMax) * assignment.finalMax)

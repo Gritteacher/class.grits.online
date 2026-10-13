@@ -424,10 +424,7 @@ drop policy if exists classroom_files_teacher_insert on storage.objects;
 create policy classroom_files_teacher_insert on storage.objects for insert to authenticated
 with check (
   bucket_id = 'classroom-files'
-  and (
-    name like 'materials/' || (select auth.uid())::text || '/%'
-    or name like 'submissions/' || (select auth.uid())::text || '/%'
-  )
+  and name like 'materials/' || (select auth.uid())::text || '/%'
 );
 drop policy if exists classroom_files_student_insert on storage.objects;
 create policy classroom_files_student_insert on storage.objects for insert to authenticated

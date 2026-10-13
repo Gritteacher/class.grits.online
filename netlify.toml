@@ -7,3 +7,8 @@
 
 [functions."cleanup-submission-files"]
   schedule = "0 19 * * *"
+
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "https://class.grits.online"
