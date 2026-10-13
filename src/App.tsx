@@ -579,10 +579,8 @@ export function App() {
   if (!identity && (!session || !validSession(state, session)))
     return (
       <PreviewLogin
-        state={state}
         dark={dark}
         onTheme={() => setDark(!dark)}
-        onEnter={enterPreview}
         initialRole={loginRole}
         onAuthenticated={refreshIdentity}
       />
