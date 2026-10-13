@@ -24,6 +24,16 @@ export async function handler(event) {
   const classroomIds = (links ?? []).map((row) => row.classroom_id);
   const { data: memberships } = await admin.from("classroom_members").select("student_id, classroom_id").in("student_id", memberIds).in("classroom_id", classroomIds);
   if (!memberships || new Set(memberships.map((row) => row.student_id)).size !== memberIds.length) return json(403, { error: "สมาชิกกลุ่มต้องอยู่ในห้องเดียวกับงาน" });
+  const classroomsByStudent = new Map();
+  for (const membership of memberships) {
+    const classroomsForStudent = classroomsByStudent.get(membership.student_id) || new Set();
+    classroomsForStudent.add(membership.classroom_id);
+    classroomsByStudent.set(membership.student_id, classroomsForStudent);
+  }
+  const sharedClassrooms = classroomIds.filter((classroomId) =>
+    memberIds.every((studentId) => classroomsByStudent.get(studentId)?.has(classroomId)),
+  );
+  if (!sharedClassrooms.length) return json(403, { error: "สมาชิกกลุ่มต้องอยู่ห้องเดียวกัน" });
   const rows = memberIds.map((studentId) => ({ assignment_id: assignmentId, student_id: studentId, response: String(input.response || "").trim(), link: input.link || null, file_path: input.filePath || null, file_name: input.fileName || null, file_type: input.fileType || null, group_id: input.groupId || crypto.randomUUID(), group_member_ids: memberIds, status: "pending", feedback: "", submitted_at: input.submittedAt || new Date().toISOString(), updated_at: new Date().toISOString() }));
   const { error } = await admin.from("submissions").upsert(rows, { onConflict: "assignment_id,student_id" });
   if (error) return json(400, { error: "บันทึกงานกลุ่มไม่สำเร็จ" });

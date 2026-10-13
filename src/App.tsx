@@ -423,6 +423,19 @@ export function App() {
     const work = await loadWork(identity.profile.id, "teacher");
     setState((current) => applyWorkData(current, work));
   }
+  async function resyncWorkFromSupabase() {
+    if (!identity) return;
+    try {
+      const work = await loadWork(identity.profile.id, identity.profile.role);
+      setState((current) => {
+        const synced = applyWorkData(current, work);
+        persist(synced);
+        return synced;
+      });
+    } catch {
+      // Keep the visible error from the original operation; the next refresh will retry.
+    }
+  }
   function commit(next: State, message: string) {
     try {
       const previousRooms = new Set(state.rooms);
@@ -448,6 +461,11 @@ export function App() {
             text: "บันทึกหน้าจอแล้ว แต่เพิ่มห้องใน Supabase ไม่สำเร็จ กรุณารีเฟรชแล้วลองใหม่",
             error: true,
           });
+          void loadTeacherRoster(identity.profile.id).then((roster) => {
+            const synced = applyTeacherRoster(state, roster);
+            persist(synced);
+            setState(synced);
+          }).catch(() => undefined);
         });
       }
       return true;
@@ -489,12 +507,13 @@ export function App() {
       const next = review(state, ids, scores, feedback);
       const saved = commit(next, `บันทึกคะแนน ${ids.length} คนแล้ว`);
       if (saved && identity?.profile.role === "teacher") {
-        void saveReviewToSupabase(identity.profile.id, next, ids).catch((error) =>
+        void saveReviewToSupabase(identity.profile.id, next, ids).catch((error) => {
           setNotice({
             text: error instanceof Error ? error.message : "บันทึกคะแนนจริงไม่สำเร็จ",
             error: true,
-          }),
-        );
+          });
+          void resyncWorkFromSupabase();
+        });
       }
       return saved;
     } catch (error) {
@@ -781,12 +800,13 @@ export function App() {
                 next,
                 gradeTarget.studentId,
                 gradeTarget.assignmentId,
-              ).catch((error) =>
+              ).catch((error) => {
                 setNotice({
                   text: error instanceof Error ? error.message : "บันทึกคะแนนจริงไม่สำเร็จ",
                   error: true,
-                }),
-              );
+                });
+                void resyncWorkFromSupabase();
+              });
             }
             setGradeTarget(null);
             return true;
@@ -856,15 +876,16 @@ export function App() {
                         identity.profile.id,
                         next,
                         reviewOverride.ids,
-                      ).catch((error) =>
+                      ).catch((error) => {
                         setNotice({
                           text:
                             error instanceof Error
                               ? error.message
                               : "บันทึกคะแนนจริงไม่สำเร็จ",
                           error: true,
-                        }),
-                      );
+                        });
+                        void resyncWorkFromSupabase();
+                      });
                     }
                     setReviewOverride(null);
                   } else {
@@ -931,12 +952,13 @@ export function App() {
               )
             ) {
               if (identity?.profile.role === "teacher")
-                void syncRealAssignments(previous, next).catch((error) =>
+                void syncRealAssignments(previous, next).catch((error) => {
                   setNotice({
                     text: error instanceof Error ? error.message : "บันทึกงานจริงไม่สำเร็จ",
                     error: true,
-                  }),
-                );
+                  });
+                  void resyncWorkFromSupabase();
+                });
               setNewTask(false);
               setEditing(null);
               open(a.id);

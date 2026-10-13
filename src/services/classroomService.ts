@@ -264,6 +264,18 @@ export async function removeClassroomFromSupabase(
     .eq("classroom_id", classroomId);
   if (assignmentError) throw new Error("ตรวจสอบงานของห้องไม่สำเร็จ");
   if (assignmentCount) throw new Error("ลบไม่ได้ เพราะห้องนี้ยังมีงานที่มอบหมายอยู่");
+  const { count: materialCount, error: materialError } = await supabase
+    .from("material_classrooms")
+    .select("material_id", { count: "exact", head: true })
+    .eq("classroom_id", classroomId);
+  if (materialError) throw new Error("ตรวจสอบสื่อของห้องไม่สำเร็จ");
+  if (materialCount) throw new Error("ลบไม่ได้ เพราะห้องนี้ยังมีสื่อการสอนอยู่");
+  const { count: announcementCount, error: announcementError } = await supabase
+    .from("announcements")
+    .select("id", { count: "exact", head: true })
+    .eq("classroom_id", classroomId);
+  if (announcementError) throw new Error("ตรวจสอบประกาศของห้องไม่สำเร็จ");
+  if (announcementCount) throw new Error("ลบไม่ได้ เพราะห้องนี้ยังมีประกาศอยู่");
   const { error } = await supabase
     .from("classrooms")
     .delete()
