@@ -228,6 +228,10 @@ export function App() {
         rooms: current.rooms.includes(profile.room)
           ? current.rooms
           : [...current.rooms, profile.room],
+        roomSubjects: {
+          ...(current.roomSubjects ?? {}),
+          [profile.room]: profile.subject ?? "สังคมศึกษา",
+        },
         students: [
           ...current.students.filter((student) => student.id !== profile.id),
           profile,
@@ -421,7 +425,7 @@ export function App() {
               academicYear: "2569",
               level: match ? `ม.${match[1]}` : "",
               room: match?.[2] ?? roomName,
-              subject: "สังคมศึกษา",
+              subject: next.roomSubjects?.[roomName] ?? "สังคมศึกษา",
             });
           }),
         ).catch(() => {
@@ -985,6 +989,7 @@ export function App() {
             preview.assignmentId,
           )}
           student={state.students.find((s) => s.id === preview.studentId)!}
+          subject={state.roomSubjects?.[state.students.find((s) => s.id === preview.studentId)?.room ?? ""] ?? "สังคมศึกษา"}
           submission={preview}
           assignment={state.assignments.find(
             (a) => a.id === preview.assignmentId,
@@ -1446,12 +1451,14 @@ function NewAssignment({
 function SubmissionPreview({
   currentGrade,
   student,
+  subject,
   submission,
   assignment,
   onClose,
 }: {
   currentGrade?: GradeEntry;
   student: Student;
+  subject: string;
   submission: Submission;
   assignment: Assignment;
   onClose: () => void;
@@ -1479,7 +1486,7 @@ function SubmissionPreview({
         <div className="paper-preview">
           <div className="paper-heading">
             <BookOpen size={20} />
-            <span>เศรษฐศาสตร์ · {assignment.category}</span>
+            <span>{subject} · {assignment.category}</span>
           </div>
           <h3>{assignment.title}</h3>
           <p className="paper-question">{assignment.description}</p>

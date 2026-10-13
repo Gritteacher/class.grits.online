@@ -63,7 +63,7 @@ export function StudentHome({
       <div className="page-heading">
         <div>
           <p className="eyebrow">
-            {student.room} · เศรษฐศาสตร์ · ภาคเรียน 1/2569
+            {student.room} · {state.roomSubjects?.[student.room] ?? student.subject ?? "สังคมศึกษา"} · ภาคเรียน 1/2569
           </p>
           <h1>
             {tasksOnly

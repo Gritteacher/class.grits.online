@@ -106,7 +106,7 @@ export function TeacherHome({ state, onOpen, onNew }: Shared) {
                   {r.replace("ม.", "")}
                 </span>
                 <span className="grow">
-                  <strong>เศรษฐศาสตร์</strong>
+                  <strong>{state.roomSubjects?.[r] ?? "สังคมศึกษา"}</strong>
                   <span className="muted">
                     {r} ·{" "}
                     {
@@ -744,6 +744,7 @@ export function Results({
   const { rooms, students } = state;
   const [room, setRoom] = useState<Room>(state.rooms[0]);
   const person = students.find((s) => s.id === studentId) ?? students[0];
+  const subject = room === "all" ? "ทุกวิชา" : state.roomSubjects?.[room] ?? "สังคมศึกษา";
   const total = studentTotal(state, person);
   const assignments = state.assignments.filter((a) =>
     a.rooms.includes(studentOnly ? person.room : room),
@@ -752,7 +753,7 @@ export function Results({
     <>
       <div className="page-heading">
         <div>
-          <p className="eyebrow">เศรษฐศาสตร์ · ภาคเรียน 1/2569</p>
+          <p className="eyebrow">{subject} · ภาคเรียน 1/2569</p>
           <h1>
             {studentOnly ? "ทุกก้าวของการเรียนรู้" : "มองเห็นความก้าวหน้า"}
           </h1>

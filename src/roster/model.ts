@@ -6,7 +6,12 @@ export function orderedRooms(rooms: string[]) {
   return [...rooms].sort((a, b) => a.localeCompare(b, "th", { numeric: true }));
 }
 
-export function addRoom(state: State, grade: number, number: number): State {
+export function addRoom(
+  state: State,
+  grade: number,
+  number: number,
+  subject = "สังคมศึกษา",
+): State {
   if (
     !Number.isInteger(grade) ||
     grade < 1 ||
@@ -19,7 +24,14 @@ export function addRoom(state: State, grade: number, number: number): State {
   }
   const room = `ม.${grade}/${number}`;
   if (state.rooms.includes(room)) throw new Error("มีห้องเรียนนี้แล้ว");
-  return { ...state, rooms: orderedRooms([...state.rooms, room]) };
+  return {
+    ...state,
+    rooms: orderedRooms([...state.rooms, room]),
+    roomSubjects: {
+      ...(state.roomSubjects ?? {}),
+      [room]: subject.trim() || "สังคมศึกษา",
+    },
+  };
 }
 
 export function removeRoom(state: State, room: string): State {
@@ -32,7 +44,13 @@ export function removeRoom(state: State, room: string): State {
       "ลบได้เฉพาะห้องว่างที่ไม่มีรายชื่อ รวมถึงรายชื่อที่พักไว้ และไม่มีงานที่มอบหมาย",
     );
   }
-  return { ...state, rooms: state.rooms.filter((r) => r !== room) };
+  const roomSubjects = { ...(state.roomSubjects ?? {}) };
+  delete roomSubjects[room];
+  return {
+    ...state,
+    rooms: state.rooms.filter((r) => r !== room),
+    roomSubjects,
+  };
 }
 
 export type StudentInput = Pick<Student, "name" | "code" | "room" | "number">;

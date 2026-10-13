@@ -437,13 +437,14 @@ function RoomForm({
 }) {
   const [grade, setGrade] = useState("6");
   const [number, setNumber] = useState("");
+  const [subject, setSubject] = useState("สังคมศึกษา");
   const [error, setError] = useState("");
   function submit(e: FormEvent) {
     e.preventDefault();
     try {
       if (
         !onSave(
-          addRoom(state, Number(grade), Number(number)),
+          addRoom(state, Number(grade), Number(number), subject),
           "เพิ่มห้องเรียนแล้ว",
         )
       )
@@ -481,6 +482,16 @@ function RoomForm({
               />
             </label>
           </div>
+          <label>
+            รายวิชา
+            <input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="เช่น สังคมศึกษา เศรษฐศาสตร์ หรือประวัติศาสตร์"
+              maxLength={120}
+              required
+            />
+          </label>
           {error && (
             <p className="form-error" role="alert">
               {error}

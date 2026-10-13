@@ -46,6 +46,7 @@ export type Student = {
   room: Room;
   number: number;
   status: "active" | "archived";
+  subject?: string;
 };
 export type Assignment = {
   id: string;
@@ -100,6 +101,7 @@ export type SubmissionSnapshot = Omit<Submission, "history"> & {
 export type State = {
   version: 1;
   rooms: Room[];
+  roomSubjects?: Record<Room, string>;
   students: Student[];
   assignments: Assignment[];
   submissions: Submission[];
@@ -273,6 +275,7 @@ export function emptyState(): State {
   return withRoomAssignments({
     version: 1,
     rooms: [],
+    roomSubjects: {},
     students: [],
     growth: seedGrowth([]),
     assignments: [],

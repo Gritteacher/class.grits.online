@@ -39,9 +39,9 @@ export async function loadStudentProfile(studentId: string): Promise<Student | n
   const member = members[0] as { classroom_id: string; student_number: number | null };
   const { data: classroom, error: classroomError } = await supabase
     .from("classrooms")
-    .select("room, name")
+    .select("room, name, subject")
     .eq("id", member.classroom_id)
-    .maybeSingle<{ room: string; name: string }>();
+    .maybeSingle<{ room: string; name: string; subject?: string | null }>();
   if (classroomError || !classroom) return null;
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
@@ -61,6 +61,7 @@ export async function loadStudentProfile(studentId: string): Promise<Student | n
     room: classroom.room || classroom.name,
     number: member.student_number ?? 0,
     status: profile.status ?? "active",
+    subject: classroom.subject || "สังคมศึกษา",
   };
 }
 
@@ -238,5 +239,15 @@ export function applyTeacherRoster(state: State, roster: TeacherRoster): State {
   const rooms: Room[] = roster.classrooms.map(
     (classroom) => classroom.room || classroom.name,
   );
-  return { ...state, rooms, students: roster.students };
+  return {
+    ...state,
+    rooms,
+    roomSubjects: Object.fromEntries(
+      roster.classrooms.map((classroom) => [
+        classroom.room || classroom.name,
+        classroom.subject?.trim() || "สังคมศึกษา",
+      ]),
+    ),
+    students: roster.students,
+  };
 }
