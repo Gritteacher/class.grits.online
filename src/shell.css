@@ -22,9 +22,12 @@ html:has(.app-shell) {
   width: max-content;
   max-width: calc(100% - 24px);
   z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   padding: 7px;
   border: 1px solid var(--glass-border);
-  border-radius: 999px;
+  border-radius: 24px;
   background: var(--glass);
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
@@ -36,6 +39,7 @@ html:has(.app-shell) {
   align-self: auto;
   margin: 0;
   gap: 4px;
+  width: 100%;
 }
 .app-shell .main-nav button {
   min-height: 58px;
@@ -43,7 +47,7 @@ html:has(.app-shell) {
   padding: 10px 16px;
   justify-content: center;
   gap: 8px;
-  border-radius: 999px;
+  border-radius: 14px;
   font-size: 13px;
   color: var(--muted);
   border: 1px solid transparent;
@@ -67,28 +71,27 @@ html:has(.app-shell) {
   flex-shrink: 0;
 }
 .app-shell .more-menu {
-  position: absolute;
-  right: 8px;
-  bottom: calc(100% + 10px);
-  display: grid;
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  min-width: 170px;
-  padding: 8px;
-  border: 1px solid var(--glass-border);
-  border-radius: 18px;
-  background: var(--glass);
-  backdrop-filter: blur(24px) saturate(140%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
-  box-shadow: var(--glass-shadow);
+  min-width: 0;
+  margin-top: 5px;
+  padding: 5px 0 0;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--glass-border) 80%, transparent);
+  background: transparent;
 }
 .app-shell .more-menu button {
   display: flex;
   align-items: center;
   gap: 9px;
-  width: 100%;
+  width: auto;
+  flex: 1 1 120px;
+  justify-content: center;
   padding: 10px 12px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 11px;
   color: var(--text);
   background: transparent;
   font: inherit;
@@ -257,6 +260,7 @@ dialog [hidden] {
     width: calc(100% - 20px);
     max-width: 400px;
     padding: 5px;
+    border-radius: 20px;
     bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
   .app-shell .main-nav {
@@ -272,6 +276,16 @@ dialog [hidden] {
     min-width: 0;
     min-height: 58px;
     white-space: normal;
+  }
+  .app-shell .more-menu {
+    gap: 4px;
+    margin-top: 4px;
+    padding-top: 4px;
+  }
+  .app-shell .more-menu button {
+    flex-basis: 92px;
+    padding: 8px 9px;
+    font-size: 11px;
   }
   .app-shell .main-content {
     padding: 24px 16px 0;
