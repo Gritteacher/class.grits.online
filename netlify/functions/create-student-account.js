@@ -47,7 +47,11 @@ export async function handler(event) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   const { data: caller, error: callerError } = await admin.auth.getUser(token);
-  if (callerError || !caller.user) return json(401, { error: "session หมดอายุ กรุณาเข้าสู่ระบบใหม่" });
+  if (callerError || !caller.user) {
+    return json(401, {
+      error: "ตรวจสอบ session ครูไม่สำเร็จ กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่",
+    });
+  }
 
   const { data: teacher } = await admin
     .from("profiles")
