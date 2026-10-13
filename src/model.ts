@@ -132,7 +132,7 @@ export const students: Student[] = [
 export const demoStudent = students[0];
 export const mockAnswer =
   "สหกรณ์ช่วยให้สมาชิกมีอำนาจต่อรองมากขึ้น เพราะรวมกันซื้อหรือขายสินค้า และแบ่งผลประโยชน์ตามการมีส่วนร่วม ต่างจากบริษัทที่แบ่งตามจำนวนหุ้น ตัวอย่างเช่น สหกรณ์การเกษตรที่รับซื้อผลผลิตของสมาชิก ทำให้เกษตรกรไม่ต้องต่อรองราคาเพียงลำพัง";
-export function seed(): State {
+function legacySeed(): State {
   const assignments: Assignment[] = [
     {
       id: "a1",
@@ -248,6 +248,22 @@ export function seed(): State {
     ],
   });
 }
+
+// Production starts with an empty academic workspace. The legacy prototype
+// records are kept out of the new app and are removed from old local saves in
+// loadState below.
+export function seed(): State {
+  return withRoomAssignments({
+    version: 1,
+    rooms: [...rooms],
+    students: students.map((student) => ({ ...student })),
+    growth: seedGrowth(students.map((student) => student.id)),
+    assignments: [],
+    submissions: [],
+    grades: [],
+    gradeEvents: [],
+  });
+}
 export function points(submission: Submission, assignment: Assignment) {
   return submission.score !== null
     ? Math.round((submission.score / assignment.rawMax) * assignment.finalMax)
@@ -307,8 +323,9 @@ export function review(
     if (
       options.expectedRevisions &&
       options.expectedRevisions[id] !== (current?.revision ?? 0)
-    )
+    ) {
       throw new Error("คะแนนเปลี่ยนแล้ว กรุณาตรวจสอบรายการใหม่ก่อนบันทึก");
+    }
     const raw = scores[id]?.trim();
     const n = Number(raw);
     if (!raw || !Number.isFinite(n) || n < 0 || n > assignment.rawMax)
@@ -425,9 +442,21 @@ export function loadState(): State {
           ["pending", "reviewed", "returned"].includes(s.status) &&
           parsed.assignments.some((a: Assignment) => a.id === s.assignmentId),
       )
-    )
+    ) {
+      const sampleAssignmentIds = new Set(["a1", "a2", "a3", "a4"]);
+      const cleanedAssignments = parsed.assignments.filter(
+        (assignment: Assignment) => !sampleAssignmentIds.has(assignment.id),
+      );
+      const cleanedAssignmentIds = new Set(cleanedAssignments.map((assignment: Assignment) => assignment.id));
+      const cleanedSubmissions = parsed.submissions.filter((submission: Submission) =>
+        cleanedAssignmentIds.has(submission.assignmentId),
+      );
       return withRoomAssignments({
         ...parsed,
+        assignments: cleanedAssignments,
+        submissions: cleanedSubmissions,
+        grades: (parsed.grades ?? []).filter((grade: GradeEntry) => cleanedAssignmentIds.has(grade.assignmentId)),
+        gradeEvents: (parsed.gradeEvents ?? []).filter((event: GradeEvent) => cleanedAssignmentIds.has(event.assignmentId)),
         rooms: savedRooms.sort((a, b) =>
           a.localeCompare(b, "th", { numeric: true }),
         ),
@@ -437,6 +466,7 @@ export function loadState(): State {
           savedStudents.map((s) => s.id),
         ),
       });
+    }
   } catch {
     /* A damaged or unavailable local cache must not prevent opening the prototype. */
   }

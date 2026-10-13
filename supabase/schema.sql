@@ -322,8 +322,8 @@ using (exists (select 1 from public.assignment_classrooms ac where ac.assignment
 
 drop policy if exists assignment_classrooms_teacher_all on public.assignment_classrooms;
 create policy assignment_classrooms_teacher_all on public.assignment_classrooms for all to authenticated
-using (exists (select 1 from public.assignments a where a.id = assignment_id and a.teacher_id = (select auth.uid())))
-with check (exists (select 1 from public.assignments a where a.id = assignment_id and a.teacher_id = (select auth.uid())));
+using (exists (select 1 from public.classrooms c where c.id = classroom_id and c.teacher_id = (select auth.uid())))
+with check (exists (select 1 from public.classrooms c where c.id = classroom_id and c.teacher_id = (select auth.uid())));
 drop policy if exists assignment_classrooms_student_read on public.assignment_classrooms;
 create policy assignment_classrooms_student_read on public.assignment_classrooms for select to authenticated
 using ((select private.is_classroom_member(classroom_id)));
