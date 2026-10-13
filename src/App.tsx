@@ -549,7 +549,7 @@ export function App() {
       <div className="preview-login auth-loading" role="status">
         <div className="preview-login-main">
           <img className="preview-school-logo" src="/school-logo.png" alt="" />
-          <p>กำลังตรวจสอบการเข้าสู่ระบบ...</p>
+          <p><span className="loading-spinner" aria-hidden="true" /> กำลังตรวจสอบการเข้าสู่ระบบ...</p>
         </div>
       </div>
     );
@@ -567,7 +567,7 @@ export function App() {
       <div className="preview-login auth-loading" role="status">
         <div className="preview-login-main">
           <img className="preview-school-logo" src="/school-logo.png" alt="" />
-          <p>กำลังโหลดข้อมูลนักเรียน...</p>
+          <p><span className="loading-spinner" aria-hidden="true" /> กำลังโหลดข้อมูลนักเรียน...</p>
         </div>
       </div>
     );
