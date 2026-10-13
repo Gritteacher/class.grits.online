@@ -68,7 +68,7 @@ export function ResourcesPage({
       <div className="page-heading resources-heading">
         <div>
           <p className="eyebrow">พื้นที่การเรียนรู้</p>
-          <h1>{role === "teacher" ? "สื่อและประกาศ" : "สื่อการเรียนรู้"}<span className="heading-dot">.</span></h1>
+          <h1>{role === "teacher" ? "สื่อและประกาศ" : "สื่อการเรียนรู้"}</h1>
           <p className="subtext">{role === "teacher" ? "จัดการเนื้อหาและข่าวสารให้แต่ละห้องเรียน" : "สื่อและประกาศสำหรับห้องเรียนของคุณ"}</p>
         </div>
         {role === "teacher" && (

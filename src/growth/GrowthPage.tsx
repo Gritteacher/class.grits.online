@@ -111,7 +111,6 @@ export function GrowthPage({
           <p className="eyebrow">พื้นที่เติบโต · แยกจากคะแนนวิชา</p>
           <h1>
             {teacher ? "เห็นคุณค่าในทุกความพยายาม" : "ฉันกำลังเติบโต"}
-            <span className="heading-dot">.</span>
           </h1>
           <p className="subtext">ไม่ต้องเหมือนใคร แค่ไปต่อในแบบของตัวเอง</p>
         </div>

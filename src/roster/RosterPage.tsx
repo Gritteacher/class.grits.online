@@ -129,7 +129,7 @@ export function RosterPage({
         <div>
           <p className="eyebrow">รู้จักทุกคนในห้อง</p>
           <h1>
-            ห้องเรียนและรายชื่อ<span className="heading-dot">.</span>
+            ห้องเรียนและรายชื่อ
           </h1>
           <p className="subtext">
             {state.rooms.length} ห้องเรียน ·{" "}

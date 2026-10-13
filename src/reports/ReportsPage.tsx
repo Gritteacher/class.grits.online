@@ -13,7 +13,7 @@ export function ReportsPage({ state }: { state: State }) {
   const logs = (state.downloadLogs ?? []).filter((log) => log.room === room);
 
   return <>
-    <div className="page-heading reports-heading"><div><p className="eyebrow">ข้อมูลสำหรับครู</p><h1>รายงาน<span className="heading-dot">.</span></h1><p className="subtext">เลือกห้อง แล้วส่งออกข้อมูลที่ต้องการเป็น Excel</p></div><label className="report-room">ห้องเรียน<select value={room} onChange={(e) => setRoom(e.target.value)}>{state.rooms.map((item) => <option key={item}>{item}</option>)}</select></label></div>
+    <div className="page-heading reports-heading"><div><p className="eyebrow">ข้อมูลสำหรับครู</p><h1>รายงาน</h1><p className="subtext">เลือกห้อง แล้วส่งออกข้อมูลที่ต้องการเป็น Excel</p></div><label className="report-room">ห้องเรียน<select value={room} onChange={(e) => setRoom(e.target.value)}>{state.rooms.map((item) => <option key={item}>{item}</option>)}</select></label></div>
     <section className="panel reports-panel">
       <div className="report-tabs" role="tablist" aria-label="ประเภทรายงาน">
         <button className={tab === "scores" ? "active" : ""} onClick={() => setTab("scores")}><ListChecks size={17} /> คะแนนรวม</button>

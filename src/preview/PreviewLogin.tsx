@@ -64,7 +64,7 @@ export function PreviewLogin({
         />
         <p className="eyebrow">โรงเรียนเทพศิรินทร์ นนทบุรี</p>
         <h1>
-          ห้องเรียนสังคมครูไต๋<span className="heading-dot">.</span>
+          ห้องเรียนสังคมครูไต๋
         </h1>
         <p className="preview-greeting">เริ่มการเรียนรู้ในแบบของคุณ</p>
         <div

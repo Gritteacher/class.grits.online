@@ -55,6 +55,9 @@ export function StudentHome({
         ).allowed,
     ) ?? toDo[0];
   const total = studentTotal(state, student);
+  const latestAnnouncement = (state.announcements ?? []).find(
+    (announcement) => announcement.room === student.room,
+  );
   return (
     <>
       <div className="page-heading">
@@ -66,7 +69,6 @@ export function StudentHome({
             {tasksOnly
               ? "พื้นที่ลงมือทำ"
               : `ยินดีต้อนรับ ${student.name.split(" ")[0]}`}
-            <span className="heading-dot">.</span>
           </h1>
           <p className="subtext">
             {tasksOnly
@@ -242,19 +244,18 @@ export function StudentHome({
             {!mine.length && <Empty>ยังไม่มีงานที่ได้รับมอบหมาย</Empty>}
           </div>
         </section>
-        {!tasksOnly && (
+        {!tasksOnly && latestAnnouncement && (
           <aside className="student-aside">
             <section className="announcement">
               <span className="announcement-icon">
                 <Megaphone size={23} />
               </span>
-              <p className="eyebrow">จากครูถึงทุกคน</p>
-              <h3>เตรียมไอเดียมาแลกกัน</h3>
-              <p>
-                คาบหน้าเราจะคุยกันเรื่องเมืองที่อยากอยู่ ลองมองรอบตัว
-                แล้วเลือกปัญหาที่อยากเปลี่ยนคนละหนึ่งเรื่องครับ
-              </p>
-              <span className="announcement-sign">ครูไต๋ · 24 ก.ย.</span>
+              <p className="eyebrow">ประกาศจากครู</p>
+              <h3>{latestAnnouncement.title}</h3>
+              <p>{latestAnnouncement.body}</p>
+              <span className="announcement-sign">
+                เผยแพร่เมื่อ {new Date(latestAnnouncement.publishedAt).toLocaleDateString("th-TH")}
+              </span>
             </section>
             <div className="small-reminder">
               <span className="reminder-line" />

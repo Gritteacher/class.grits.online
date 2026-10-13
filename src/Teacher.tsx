@@ -43,7 +43,7 @@ export function TeacherHome({ state, onOpen, onNew }: Shared) {
         <div>
           <p className="eyebrow">พฤหัสบดี 24 กันยายน · ภาคเรียน 1/2569</p>
           <h1>
-            ทุกการเรียนรู้ เริ่มจากวันนี้<span className="heading-dot">.</span>
+            ทุกการเรียนรู้ เริ่มจากวันนี้
           </h1>
           <p className="subtext">สวัสดีครับ ครูไต๋</p>
         </div>
@@ -361,7 +361,7 @@ export function Workspace({
         <div>
           <p className="eyebrow">มอบหมาย · รับงาน · ให้คำตอบ</p>
           <h1>
-            พื้นที่งาน<span className="heading-dot">.</span>
+            พื้นที่งาน
           </h1>
         </div>
         <button className="button gold" onClick={onNew}>
@@ -755,7 +755,6 @@ export function Results({
           <p className="eyebrow">เศรษฐศาสตร์ · ภาคเรียน 1/2569</p>
           <h1>
             {studentOnly ? "ทุกก้าวของการเรียนรู้" : "มองเห็นความก้าวหน้า"}
-            <span className="heading-dot">.</span>
           </h1>
         </div>
         {!studentOnly && (
