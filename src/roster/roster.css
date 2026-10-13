@@ -1,0 +1,197 @@
+.roster-layout {
+  display: grid;
+  grid-template-columns: 205px minmax(0, 1fr);
+  gap: 40px;
+  align-items: start;
+}
+.roster-rooms {
+  display: grid;
+  gap: 10px;
+}
+.roster-rooms h2 {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+.roster-room {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  min-width: 0;
+}
+.roster-room.active {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+  color: var(--teal-dark);
+  box-shadow: inset 3px 0 var(--teal);
+}
+.roster-room span {
+  display: grid;
+  gap: 2px;
+}
+.roster-room strong {
+  font-size: 17px;
+}
+.roster-room small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.roster-content {
+  min-width: 0;
+}
+.roster-title {
+  margin-bottom: 24px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.roster-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.roster-filters {
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.roster-filters .search-field {
+  flex: 1;
+  min-width: 0;
+}
+.roster-status {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.roster-status select {
+  min-width: 150px;
+  height: 44px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+}
+.roster-selection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 62px;
+  border-top: 1px solid var(--border);
+}
+.roster-selection label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.roster-selection input,
+.roster-person > input {
+  width: 19px;
+  height: 19px;
+  accent-color: var(--teal-dark);
+  flex-shrink: 0;
+}
+.roster-selection .button {
+  font-size: 13px;
+  padding: 9px 12px;
+}
+.roster-list {
+  display: grid;
+}
+.roster-person {
+  display: grid;
+  grid-template-columns: 20px 42px minmax(0, 1fr) 44px;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+}
+.roster-person:last-child {
+  border-bottom: 1px solid var(--border);
+}
+.roster-number {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--gold-soft);
+  color: var(--gold-text);
+  font-size: 15px;
+}
+.roster-person-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.roster-person-name h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.roster-person-name p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.roster-person .icon-button {
+  width: 42px;
+  height: 42px;
+}
+.roster-confirm-names {
+  max-height: 220px;
+  overflow-y: auto;
+  padding-left: 24px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .roster-layout {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .roster-rooms {
+    display: flex;
+    overflow-x: auto;
+    padding: 0 0 8px;
+  }
+  .roster-rooms h2 {
+    display: none;
+  }
+  .roster-room {
+    flex: 0 0 134px;
+  }
+}
+@media (max-width: 540px) {
+  .roster-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .roster-person {
+    grid-template-columns: 20px 30px minmax(0, 1fr) 42px;
+    gap: 9px;
+    padding: 14px 0;
+  }
+  .roster-person-name h3 {
+    font-size: 14px;
+  }
+  .roster-number {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+  .roster-title h2 {
+    font-size: 24px;
+  }
+  .roster-status select {
+    font-size: 16px;
+  }
+}

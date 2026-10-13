@@ -1,0 +1,147 @@
+.roster-import {
+  min-width: 0;
+}
+.roster-import .form-columns > label {
+  min-width: 0;
+}
+.roster-import-file input {
+  width: 100%;
+  min-width: 0;
+  font-size: 13px;
+}
+.roster-import-file input::file-selector-button {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  margin-right: 8px;
+}
+.import-file-name {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+.import-file-name svg {
+  flex-shrink: 0;
+}
+.import-mapping {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.import-mapping label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+}
+.import-mapping select {
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+.import-summary {
+  display: grid;
+  gap: 4px;
+  border-block: 1px solid var(--border);
+  padding: 12px 0;
+  font-size: 14px;
+}
+.import-summary span,
+.import-limit {
+  color: var(--muted);
+  font-size: 12px;
+}
+.import-selection-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.import-selection-actions .button {
+  font-size: 12px;
+  padding: 9px 12px;
+}
+.import-preview {
+  min-width: 0;
+}
+.import-preview-head,
+.import-preview-row {
+  display: grid;
+  grid-template-columns: 20px 36px 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.import-preview-head {
+  color: var(--muted);
+  font-size: 12px;
+}
+.import-preview-row.invalid {
+  background: var(--coral-soft);
+}
+.import-preview-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--teal-dark);
+}
+.import-person {
+  display: grid;
+  gap: 5px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.import-person strong {
+  font-weight: 400;
+}
+.import-person > span {
+  font-size: 12px;
+}
+.import-ready {
+  color: var(--teal-dark);
+}
+.import-row-error {
+  color: var(--text);
+}
+.import-row-number small,
+.import-roll-number small {
+  display: none;
+}
+.import-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  align-items: center;
+  font-size: 13px;
+}
+.roster-actions {
+  flex-wrap: wrap;
+}
+@media (max-width: 540px) {
+  .import-mapping {
+    grid-template-columns: 1fr;
+  }
+  .import-preview-head {
+    display: none;
+  }
+  .import-preview-row {
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8px;
+    padding: 12px 6px;
+  }
+  .import-person {
+    grid-column: 2 / -1;
+  }
+  .import-row-number small,
+  .import-roll-number small {
+    display: inline;
+  }
+  .roster-actions .button {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+}

@@ -1,0 +1,217 @@
+.preview-login {
+  min-height: 100dvh;
+  background: var(--bg);
+}
+.preview-login-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1120px;
+  padding: 24px;
+  margin: auto;
+  gap: 12px;
+}
+.preview-login-header > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.preview-login-main {
+  max-width: 480px;
+  margin: 20px auto 0;
+  padding: 0 24px 48px;
+  text-align: center;
+}
+.preview-school-logo {
+  width: 82px;
+  height: 82px;
+  object-fit: contain;
+  padding: 10px;
+  background: var(--surface);
+  border-radius: 50%;
+  margin: 0 auto 18px;
+  box-shadow: 0 6px 20px #2ba8a218;
+}
+.preview-login-main h1 {
+  font-size: 28px;
+  line-height: 1.6;
+  margin: 8px 0;
+}
+.preview-greeting {
+  color: var(--muted);
+  margin: 0 0 28px;
+  font-size: 14px;
+}
+.preview-role-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 6px;
+  background: var(--surface-alt);
+  border-radius: 8px;
+}
+.preview-role-tabs button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  border-radius: 6px;
+  color: var(--muted);
+}
+.preview-role-tabs button[aria-pressed="true"] {
+  background: var(--teal-soft);
+  color: var(--teal-dark);
+  box-shadow: inset 0 -2px var(--teal);
+}
+.preview-login-form {
+  text-align: left;
+  padding-top: 24px;
+}
+.preview-teacher h2 {
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+.preview-teacher p {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+.preview-login-form .preview-enter {
+  width: 100%;
+  margin-top: 24px;
+  justify-content: space-between;
+}
+.preview-sample-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+.preview-sample-picker label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+}
+.preview-login-form select {
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+.preview-selected {
+  border-left: 3px solid var(--teal);
+  padding: 4px 14px;
+  display: grid;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.preview-selected strong {
+  font-size: 15px;
+}
+.preview-selected span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.preview-disclaimer {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 24px 0 0;
+}
+.preview-mode-link {
+  display: block;
+  margin: 20px auto 0;
+  padding: 8px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.preview-mode-link:hover {
+  color: var(--teal-dark);
+}
+.auth-loading {
+  display: grid;
+  place-items: center;
+}
+.auth-loading .preview-login-main {
+  margin-top: 18vh;
+}
+.preview-identity {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 16px 24px 0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+}
+.preview-identity label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 0;
+}
+.preview-identity select {
+  max-width: 340px;
+  min-width: 0;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  text-overflow: ellipsis;
+}
+.site-header .logout-button {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+}
+@media (max-width: 540px) {
+  .preview-login-header {
+    padding: 16px;
+  }
+  .preview-login-header > span {
+    font-size: 10px;
+  }
+  .preview-login-main {
+    margin-top: 12px;
+    padding: 0 20px 32px;
+  }
+  .preview-login-main h1 {
+    font-size: 24px;
+  }
+  .preview-identity {
+    padding: 14px 16px 0;
+  }
+  .preview-identity label {
+    width: 100%;
+    display: grid;
+    gap: 6px;
+  }
+  .preview-identity select {
+    width: 100%;
+    max-width: 100%;
+    font-size: 16px;
+  }
+  .site-header .header-actions {
+    gap: 5px;
+  }
+  .site-header .brand strong {
+    font-size: 13px;
+  }
+  .site-header .brand small {
+    font-size: 8px;
+  }
+  .site-header .brand {
+    gap: 6px;
+  }
+  .site-header .logout-button {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+}
