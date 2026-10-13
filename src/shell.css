@@ -66,6 +66,38 @@ html:has(.app-shell) {
 .app-shell .main-nav button svg {
   flex-shrink: 0;
 }
+.app-shell .more-menu {
+  position: absolute;
+  right: 8px;
+  bottom: calc(100% + 10px);
+  display: grid;
+  gap: 6px;
+  min-width: 170px;
+  padding: 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  background: var(--glass);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow: var(--glass-shadow);
+}
+.app-shell .more-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+.app-shell .more-menu button:hover,
+.app-shell .more-menu button:focus-visible {
+  background: var(--surface-alt);
+}
 .app-shell .site-header {
   background: var(--glass);
   backdrop-filter: blur(18px);
@@ -231,8 +263,9 @@ dialog [hidden] {
     gap: 2px;
     width: 100%;
   }
-  .app-shell .main-nav button {
+.app-shell .main-nav button {
     flex: 1 1 0;
+    min-width: 0;
     gap: 4px;
     padding: 8px 2px;
     font-size: 10px;

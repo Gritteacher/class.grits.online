@@ -300,8 +300,8 @@ using (exists (select 1 from public.material_classrooms mc where mc.material_id 
 
 drop policy if exists material_classrooms_teacher_all on public.material_classrooms;
 create policy material_classrooms_teacher_all on public.material_classrooms for all to authenticated
-using (exists (select 1 from public.materials m where m.id = material_id and m.teacher_id = (select auth.uid())))
-with check (exists (select 1 from public.materials m where m.id = material_id and m.teacher_id = (select auth.uid())));
+using (exists (select 1 from public.classrooms c where c.id = classroom_id and c.teacher_id = (select auth.uid())))
+with check (exists (select 1 from public.classrooms c where c.id = classroom_id and c.teacher_id = (select auth.uid())));
 drop policy if exists material_classrooms_student_read on public.material_classrooms;
 create policy material_classrooms_student_read on public.material_classrooms for select to authenticated
 using ((select private.is_classroom_member(classroom_id)));

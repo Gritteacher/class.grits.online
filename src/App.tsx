@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Moon,
+  MoreHorizontal,
   Plus,
   RotateCcw,
   Send,
@@ -120,6 +121,7 @@ export function App() {
   const [page, setPage] = useState<Page>("today");
   const [activeId, setActiveId] = useState("a1");
   const [dark, setDark] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const [newTask, setNewTask] = useState(false);
   const [editing, setEditing] = useState<Assignment | null>(null);
@@ -282,6 +284,7 @@ export function App() {
   }, [identity?.profile.id, identity?.profile.role]);
   function navigate(next: Page) {
     setPage(next);
+    setMoreOpen(false);
     window.scrollTo({ top: 0, behavior: "instant" });
   }
   function open(id: string) {
@@ -597,14 +600,14 @@ export function App() {
       icon: ClipboardList,
     },
     { key: "results" as Page, title: "ความก้าวหน้า", icon: TrendingUp },
-    { key: "growth" as Page, title: "การเติบโต", icon: Sprout },
     { key: "resources" as Page, title: role === "teacher" ? "สื่อและประกาศ" : "สื่อการเรียนรู้", icon: BookOpen },
-    ...(role === "teacher"
-      ? [{ key: "reports" as Page, title: "รายงาน", icon: File }]
-      : []),
-    ...(role === "teacher"
-      ? [{ key: "roster" as Page, title: "ห้องเรียน", icon: Users }]
-      : []),
+  ];
+  const moreMenu = [
+    { key: "growth" as Page, title: "การเติบโต", icon: Sprout },
+    ...(role === "teacher" ? [
+      { key: "reports" as Page, title: "รายงาน", icon: File },
+      { key: "roster" as Page, title: "ห้องเรียน", icon: Users },
+    ] : []),
   ];
   return (
     <div className="app-shell">
@@ -699,7 +702,27 @@ export function App() {
               <span>{item.title}</span>
             </button>
           ))}
+          <button
+            className={moreOpen || moreMenu.some((item) => item.key === page) ? "active" : ""}
+            aria-expanded={moreOpen}
+            aria-label="เมนูเพิ่มเติม"
+            title="เมนูเพิ่มเติม"
+            onClick={() => setMoreOpen((open) => !open)}
+          >
+            <MoreHorizontal size={21} />
+            <span>เพิ่มเติม</span>
+          </button>
         </nav>
+        {moreOpen && (
+          <div className="more-menu" role="menu" aria-label="เมนูเพิ่มเติม">
+            {moreMenu.map((item) => (
+              <button key={item.key} role="menuitem" onClick={() => navigate(item.key)}>
+                <item.icon size={18} />
+                {item.title}
+              </button>
+            ))}
+          </div>
+        )}
       </aside>
       {role === "student" && !identity && (
         <div className="preview-identity">
