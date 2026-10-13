@@ -679,7 +679,7 @@ export function App() {
             </button>
           ))}
           <button
-            className={moreOpen || moreMenu.some((item) => item.key === page) ? "active" : ""}
+            className={moreOpen ? "active" : ""}
             aria-expanded={moreOpen}
             aria-label="เมนูเพิ่มเติม"
             title="เมนูเพิ่มเติม"
@@ -692,9 +692,15 @@ export function App() {
         {moreOpen && (
           <div className="more-menu" role="menu" aria-label="เมนูเพิ่มเติม">
             {moreMenu.map((item) => (
-              <button key={item.key} role="menuitem" onClick={() => navigate(item.key)}>
+              <button
+                key={item.key}
+                role="menuitem"
+                className={page === item.key ? "active" : ""}
+                aria-current={page === item.key ? "page" : undefined}
+                onClick={() => navigate(item.key)}
+              >
                 <item.icon size={18} />
-                {item.title}
+                <span>{item.title}</span>
               </button>
             ))}
           </div>
