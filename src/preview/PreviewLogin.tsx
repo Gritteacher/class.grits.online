@@ -7,6 +7,7 @@ import {
   Users,
 } from "lucide-react";
 import { signIn, type UserRole } from "../services/authService";
+import { SchoolLogo } from "../components/SchoolLogo";
 import "./preview.css";
 
 export function PreviewLogin({
@@ -57,10 +58,10 @@ export function PreviewLogin({
         </button>
       </header>
       <main className="preview-login-main">
-        <img
+        <SchoolLogo
           className="preview-school-logo"
-          src="/school-logo.png"
           alt="ตราโรงเรียนเทพศิรินทร์ นนทบุรี"
+          state="login"
         />
         <p className="eyebrow">โรงเรียนเทพศิรินทร์ นนทบุรี</p>
         <h1>

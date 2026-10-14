@@ -37,6 +37,7 @@ import {
 } from "./model";
 import { Modal, Status } from "./ui";
 import { FilePreview } from "./components/FilePreview";
+import { SchoolLogo } from "./components/SchoolLogo";
 import { Results, TeacherHome, Workspace } from "./Teacher";
 import { StudentHome } from "./Student";
 import { GrowthPage } from "./growth/GrowthPage";
@@ -613,7 +614,7 @@ export function App() {
     return (
       <div className="preview-login auth-loading" role="status">
         <div className="preview-login-main">
-          <img className="preview-school-logo" src="/school-logo.png" alt="" />
+          <SchoolLogo className="preview-school-logo" alt="" state="auth-loading" />
           <p><span className="loading-spinner" aria-hidden="true" /> กำลังตรวจสอบการเข้าสู่ระบบ...</p>
         </div>
       </div>
@@ -631,7 +632,7 @@ export function App() {
     return (
       <div className="preview-login auth-loading" role="status">
         <div className="preview-login-main">
-          <img className="preview-school-logo" src="/school-logo.png" alt="" />
+          <SchoolLogo className="preview-school-logo" state="student-loading" />
           {studentLoadError ? <>
             <p role="alert">{studentLoadError}</p>
             <p>รหัสนักเรียน {identity.profile.student_code}</p>
@@ -672,10 +673,7 @@ export function App() {
             aria-label="ห้องเรียนสังคมครูไต๋ หน้าหลัก"
           >
             <span className="logo-wrap">
-              <img
-                src="/school-logo.png"
-                alt="ตราโรงเรียนเทพศิรินทร์ นนทบุรี"
-              />
+              <SchoolLogo state={role} />
             </span>
             <span>
               <strong>ห้องเรียนสังคมครูไต๋</strong>
