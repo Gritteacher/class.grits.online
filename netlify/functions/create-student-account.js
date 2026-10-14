@@ -70,10 +70,40 @@ export async function handler(event) {
 
   const { data: existing } = await admin
     .from("profiles")
-    .select("id")
+    .select("id, display_name, role, status")
     .eq("student_code", code)
     .maybeSingle();
-  if (existing) return json(409, { error: "รหัสนักเรียนนี้มีบัญชีแล้ว" });
+  if (existing) {
+    if (existing.role !== "student") return json(409, { error: "รหัสนี้ถูกใช้กับบัญชีครูแล้ว" });
+    const { data: membership, error: membershipError } = await admin
+      .from("classroom_members")
+      .select("classroom_id")
+      .eq("classroom_id", classroomId)
+      .eq("student_id", existing.id)
+      .maybeSingle();
+    if (membershipError) return json(500, { error: "ตรวจสอบห้องของนักเรียนไม่สำเร็จ" });
+    if (membership) return json(409, { error: "นักเรียนคนนี้อยู่ในห้องเรียนนี้แล้ว" });
+
+    // Repair a partially-created account: the Auth user/profile exists but
+    // the classroom membership insert did not finish. Keep the old password.
+    const { error: attachError } = await admin.from("classroom_members").insert({
+      classroom_id: classroomId,
+      student_id: existing.id,
+      student_number: studentNumber,
+    });
+    if (attachError) return json(400, { error: "ผูกนักเรียนเข้าห้องเรียนไม่สำเร็จ" });
+    const { error: profileUpdateError } = await admin
+      .from("profiles")
+      .update({ display_name: displayName, status: "active" })
+      .eq("id", existing.id);
+    if (profileUpdateError) return json(400, { error: "ผูกห้องสำเร็จ แต่ปรับข้อมูลนักเรียนไม่สำเร็จ" });
+    return json(200, {
+      id: existing.id,
+      studentCode: code,
+      displayName,
+      repaired: true,
+    });
+  }
 
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email: studentEmail(code),

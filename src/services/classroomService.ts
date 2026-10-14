@@ -35,14 +35,16 @@ export async function loadStudentProfile(studentId: string): Promise<Student | n
     .from("classroom_members")
     .select("classroom_id, student_number")
     .eq("student_id", studentId);
-  if (memberError || !members?.length) return null;
+  if (memberError) throw new Error(`โหลดสมาชิกห้องเรียนไม่สำเร็จ (${memberError.code || "network"})`);
+  if (!members?.length) throw new Error("บัญชีนักเรียนนี้ยังไม่มีห้องเรียนที่เข้าถึงได้ กรุณาให้ครูตรวจสอบการผูกบัญชีกับห้องเรียน");
   const member = members[0] as { classroom_id: string; student_number: number | null };
   const { data: classroom, error: classroomError } = await supabase
     .from("classrooms")
     .select("room, name, subject")
     .eq("id", member.classroom_id)
     .maybeSingle<{ room: string; name: string; subject?: string | null }>();
-  if (classroomError || !classroom) return null;
+  if (classroomError) throw new Error(`โหลดห้องเรียนไม่สำเร็จ (${classroomError.code || "network"})`);
+  if (!classroom) throw new Error("ไม่พบห้องเรียนหรือไม่มีสิทธิ์เข้าถึง กรุณาให้ครูตรวจสอบห้องเรียน");
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("id, display_name, student_code, status")
@@ -53,7 +55,8 @@ export async function loadStudentProfile(studentId: string): Promise<Student | n
       student_code: string | null;
       status?: "active" | "archived";
     }>();
-  if (profileError || !profile) return null;
+  if (profileError) throw new Error(`โหลดโปรไฟล์นักเรียนไม่สำเร็จ (${profileError.code || "network"})`);
+  if (!profile) throw new Error("ไม่พบโปรไฟล์นักเรียน กรุณาติดต่อครู");
   return {
     id: profile.id,
     code: profile.student_code || profile.id.slice(0, 8),
@@ -97,6 +100,9 @@ export async function loadTeacherRoster(teacherId: string): Promise<TeacherRoste
   const profileById = new Map(
     ((profiles ?? []) as ProfileRecord[]).map((profile) => [profile.id, profile]),
   );
+  if (studentIds.some((id) => !profileById.has(id))) {
+    throw new Error("พบสมาชิกในห้อง แต่โหลดโปรไฟล์นักเรียนไม่ครบ กรุณาตรวจสอบสิทธิ์การอ่านข้อมูล ไม่ใช่ห้องเรียนว่าง");
+  }
   const roomByClassroomId = new Map(
     classroomRows.map((classroom) => [
       classroom.id,

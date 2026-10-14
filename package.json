@@ -11,6 +11,7 @@
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
+    "@line/liff": "^2.31.2",
     "@supabase/supabase-js": "^2.117.3",
     "lucide-react": "^1.47.0",
     "react": "^19.3.0",

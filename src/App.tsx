@@ -105,6 +105,10 @@ export function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const role = identity?.profile.role ?? "teacher";
   const [studentId, setStudentId] = useState("");
+  const [studentLoadError, setStudentLoadError] = useState("");
+  const [studentRetry, setStudentRetry] = useState(0);
+  const [rosterError, setRosterError] = useState("");
+  const [rosterRetry, setRosterRetry] = useState(0);
   const [loginRole, setLoginRole] = useState<"teacher" | "student">("teacher");
   const [page, setPage] = useState<Page>("today");
   const [activeId, setActiveId] = useState("");
@@ -130,9 +134,10 @@ export function App() {
   } | null>(null);
   const [overrideError, setOverrideError] = useState("");
   const student =
-    state.students.find((s) => s.id === studentId) ?? state.students[0];
+    state.students.find((s) => s.id === (role === "student" ? identity?.profile.id : studentId));
   useEffect(() => {
     let mounted = true;
+    let authTimer: ReturnType<typeof setTimeout> | undefined;
     void (async () => {
       try {
         const { data } = await supabase.auth.getSession();
@@ -145,16 +150,25 @@ export function App() {
       }
     })();
     const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => {
+      clearTimeout(authTimer);
       if (!next) {
         setIdentity(null);
+        setState(emptyState());
+        setStudentId("");
         return;
       }
-      void getCurrentIdentity(next).then((current) => {
-        if (mounted) setIdentity(current);
-      });
+      // Run queries outside Supabase's auth callback lock.
+      authTimer = setTimeout(() => {
+        void getCurrentIdentity(next).then((current) => {
+          if (mounted) setIdentity(current);
+        }).catch(() => {
+          if (mounted) setNotice({ text: "โหลดข้อมูลผู้ใช้ไม่สำเร็จ กรุณาลองใหม่", error: true });
+        });
+      }, 0);
     });
     return () => {
       mounted = false;
+      clearTimeout(authTimer);
       listener.subscription.unsubscribe();
     };
   }, []);
@@ -173,9 +187,17 @@ export function App() {
   useEffect(() => {
     if (!identity || identity.profile.role !== "teacher") return;
     let mounted = true;
+    setRosterError("");
+    const timeout = setTimeout(() => {
+      if (mounted) {
+        mounted = false;
+        setRosterError("โหลดรายชื่อนานเกินไป ข้อมูลที่แสดงอาจยังไม่ครบ กรุณาลองใหม่");
+      }
+    }, 15000);
     void loadTeacherRoster(identity.profile.id)
       .then((roster) => {
         if (!mounted) return;
+        clearTimeout(timeout);
         setState((current) => applyTeacherRoster(current, roster));
         void loadGrowth(roster.students.map((student) => student.id))
           .then((growth) => {
@@ -186,7 +208,9 @@ export function App() {
           });
       })
       .catch((error) => {
+        clearTimeout(timeout);
         if (mounted) {
+          setRosterError(error instanceof Error ? error.message : "โหลดรายชื่อนักเรียนไม่สำเร็จ");
           setNotice({
             text:
               error instanceof Error
@@ -198,8 +222,9 @@ export function App() {
       });
     return () => {
       mounted = false;
+      clearTimeout(timeout);
     };
-  }, [identity?.profile.id, identity?.profile.role]);
+  }, [identity?.profile.id, identity?.profile.role, rosterRetry]);
   useEffect(() => {
     if (!identity) return;
     let mounted = true;
@@ -222,8 +247,17 @@ export function App() {
   useEffect(() => {
     if (!identity || identity.profile.role !== "student") return;
     let mounted = true;
+    setStudentLoadError("");
+    const timeout = setTimeout(() => {
+      if (mounted) {
+        mounted = false;
+        setStudentLoadError("โหลดข้อมูลนักเรียนนานเกินไป กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่");
+      }
+    }, 15000);
     void loadStudentProfile(identity.profile.id).then((profile) => {
-      if (!mounted || !profile) return;
+      if (!mounted) return;
+      clearTimeout(timeout);
+      if (!profile) throw new Error("ไม่พบข้อมูลนักเรียน กรุณาติดต่อครู");
       setStudentId(profile.id);
       setState((current) => ({
         ...current,
@@ -246,11 +280,15 @@ export function App() {
         .catch((error) => {
           if (mounted) setNotice({ text: error instanceof Error ? error.message : "โหลดข้อมูลการเติบโตไม่สำเร็จ", error: true });
         });
+    }).catch((error) => {
+      clearTimeout(timeout);
+      if (mounted) setStudentLoadError(error instanceof Error ? error.message : "โหลดข้อมูลนักเรียนไม่สำเร็จ");
     });
     return () => {
       mounted = false;
+      clearTimeout(timeout);
     };
-  }, [identity?.profile.id, identity?.profile.role]);
+  }, [identity?.profile.id, identity?.profile.role, studentRetry]);
   useEffect(() => {
     if (!identity) return;
     let mounted = true;
@@ -593,7 +631,12 @@ export function App() {
       <div className="preview-login auth-loading" role="status">
         <div className="preview-login-main">
           <img className="preview-school-logo" src="/school-logo.png" alt="" />
-          <p><span className="loading-spinner" aria-hidden="true" /> กำลังโหลดข้อมูลนักเรียน...</p>
+          {studentLoadError ? <>
+            <p role="alert">{studentLoadError}</p>
+            <p>รหัสนักเรียน {identity.profile.student_code}</p>
+            <button type="button" onClick={() => setStudentRetry((value) => value + 1)}>ลองใหม่</button>
+            <button type="button" onClick={() => void leaveAccount()}>ออกจากระบบ</button>
+          </> : <p><span className="loading-spinner" aria-hidden="true" /> กำลังโหลดข้อมูลนักเรียน...</p>}
         </div>
       </div>
     );
@@ -650,7 +693,7 @@ export function App() {
             <span className="role-label">
               <GraduationCap size={18} />
               {identity?.profile.display_name ||
-                (role === "teacher" ? "ครูไต๋" : student.name.split(" ")[0])}
+                (role === "teacher" ? "ครูไต๋" : student?.name.split(" ")[0])}
             </span>
             <button
               className="icon-button logout-button"
@@ -707,6 +750,10 @@ export function App() {
         )}
       </aside>
       <main className="main-content" key={`${role}:${studentId}`}>
+        {role === "teacher" && rosterError && <div role="alert">
+          <p>{rosterError}</p>
+          <button type="button" onClick={() => setRosterRetry((value) => value + 1)}>โหลดรายชื่อใหม่</button>
+        </div>}
         {page === "reports" && role === "teacher" ? (
           <ReportsPage state={state} />
         ) : page === "resources" ? (
@@ -778,7 +825,7 @@ export function App() {
         ) : page === "results" ? (
           <Results state={state} studentOnly studentId={studentId} />
         ) : (
-          <StudentHome
+          student && <StudentHome
             state={state}
             student={student}
             onSubmit={setSubmitTask}
@@ -1042,7 +1089,7 @@ export function App() {
           onClose={() => setPreview(null)}
         />
       )}
-      {submitTask && (
+      {submitTask && student && (
         <SubmitWork
           previous={state.submissions.find(
             (s) =>
