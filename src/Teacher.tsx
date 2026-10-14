@@ -28,6 +28,7 @@ import { AssignmentIcon, Empty, ScoreRing, Status, TextLink } from "./ui";
 import { availability, dateTime, deadline } from "./work/model";
 import { assignmentGroupId, assignmentGroups } from "./work/rooms";
 import { getGrade, gradePoints } from "./grading/model";
+import { FilePreview } from "./components/FilePreview";
 
 type Shared = { state: State; onOpen: (id: string) => void; onNew: () => void };
 export function TeacherHome({ state, onOpen, onNew }: Shared) {
@@ -588,6 +589,7 @@ export function Workspace({
                           ? ` · คงคะแนนเดิม ${gradePoints(entry, assignment)}/${assignment.finalMax}`
                           : ""}
                       </small>
+                      {s.file && <FilePreview file={s.file} onOpen={() => onPreview(s)} />}
                     </div>
                     <div className="work-row-actions">
                       <button

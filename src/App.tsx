@@ -36,6 +36,7 @@ import {
   safeLink,
 } from "./model";
 import { Modal, Status } from "./ui";
+import { FilePreview } from "./components/FilePreview";
 import { Results, TeacherHome, Workspace } from "./Teacher";
 import { StudentHome } from "./Student";
 import { GrowthPage } from "./growth/GrowthPage";
@@ -1557,12 +1558,6 @@ function SubmissionPreview({
 }) {
   const url = safeLink(submission.link ?? "");
   const file = submission.file;
-  const validFile =
-    file &&
-    ((file.type === "application/pdf" &&
-      file.data.startsWith("data:application/pdf;base64,")) ||
-      (["image/png", "image/jpeg"].includes(file.type) &&
-        file.data.startsWith(`data:${file.type};base64,`)));
   return (
     <Modal
       title={assignment.title}
@@ -1596,23 +1591,13 @@ function SubmissionPreview({
               <ExternalLink size={16} />
             </a>
           )}
-          {validFile &&
-            (file.type.startsWith("image/") ? (
-              <img
-                className="submission-image"
-                src={file.data}
-                alt={file.name}
-              />
-            ) : (
-              <a
-                className="button neutral"
-                href={file.data}
-                download={file.name}
-              >
-                <File size={17} />
-                ดาวน์โหลด {file.name}
-              </a>
-            ))}
+          {file && <FilePreview file={file} compact={false} />}
+          {file && (
+            <a className="button neutral" href={file.data} target="_blank" rel="noopener noreferrer" download={file.name}>
+              <File size={17} />
+              เปิดหรือดาวน์โหลด {file.name}
+            </a>
+          )}
         </div>
         {currentGrade && (
           <section className="feedback-result">

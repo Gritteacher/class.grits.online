@@ -18,6 +18,7 @@ import {
 } from "./model";
 import { availability, dateTime, deadline } from "./work/model";
 import { getGrade, gradePoints } from "./grading/model";
+import { FilePreview } from "./components/FilePreview";
 
 export function StudentHome({
   student,
@@ -171,6 +172,7 @@ export function StudentHome({
                     {s?.status === "returned" && (
                       <p className="teacher-feedback">{s.revisionNote}</p>
                     )}
+                    {s?.file && <FilePreview file={s.file} onOpen={() => onPreview(s)} />}
                     {entry && (!s || s.status !== "reviewed") && (
                       <p className="work-window">
                         คะแนนปัจจุบัน {gradePoints(entry, a)}/{a.finalMax}{" "}
