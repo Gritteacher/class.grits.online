@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test("production entry point requires Supabase authentication", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText("เข้าสู่ระบบด้วย Supabase")).toBeVisible();
+  await expect(page.getByText("เริ่มเรียนรู้")).toBeVisible();
   await expect(page.getByText("ต้นแบบ · ข้อมูลสมมติ")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "มุมครู" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "มุมนักเรียน" })).toHaveCount(0);

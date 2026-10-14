@@ -46,7 +46,7 @@ export function PreviewLogin({
       <header className="preview-login-header">
         <span>
           <GraduationCap size={16} />
-          เข้าสู่ระบบด้วย Supabase
+          เริ่มเรียนรู้
         </span>
         <button
           className="icon-button"
