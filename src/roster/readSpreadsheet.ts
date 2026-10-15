@@ -1,4 +1,5 @@
 import { MAX_IMPORT_BYTES, type ImportSheet } from "./importModel";
+import { parseWorkbook } from "./excel";
 
 export async function readSpreadsheet(
   file: File,
@@ -10,6 +11,9 @@ export async function readSpreadsheet(
     throw new Error("ไฟล์ต้องมีขนาดไม่เกิน 5 MB และไม่เป็นไฟล์ว่าง");
   const bytes = await file.arrayBuffer();
   if (signal.aborted) throw new Error("ยกเลิกการอ่านไฟล์แล้ว");
+  // Keep a copy: transferring the original buffer detaches it, which would
+  // prevent the main-thread fallback from reading the file if the worker fails.
+  const workerBytes = bytes.slice(0);
   // A worker keeps parsing off the UI thread and can be terminated on cancel/timeout.
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL("./excel.worker.ts", import.meta.url), {
@@ -20,17 +24,25 @@ export async function readSpreadsheet(
       worker.terminate();
       signal.removeEventListener("abort", abort);
     };
+    const fallback = (message: string) => {
+      try {
+        resolve(parseWorkbook(bytes));
+      } catch {
+        reject(new Error(message));
+      }
+      cleanup();
+    };
     const fail = (message: string) => {
       cleanup();
       reject(new Error(message));
     };
     const abort = () => fail("ยกเลิกการอ่านไฟล์แล้ว");
     const timer = setTimeout(
-      () => fail("อ่านไฟล์นานเกินไป กรุณาแยกรายชื่อเป็นไฟล์ที่เล็กลง"),
+      () => fallback("อ่านไฟล์นานเกินไป กรุณาแยกรายชื่อเป็นไฟล์ที่เล็กลง"),
       15000,
     );
     signal.addEventListener("abort", abort, { once: true });
-    worker.onerror = () => fail("อ่านไฟล์ไม่สำเร็จ กรุณาลองใหม่");
+    worker.onerror = () => fallback("อ่านไฟล์ไม่สำเร็จ กรุณาลองใหม่");
     worker.onmessage = (
       event: MessageEvent<{ sheets?: ImportSheet[]; error?: string }>,
     ) => {
@@ -38,6 +50,6 @@ export async function readSpreadsheet(
       if (event.data.sheets) resolve(event.data.sheets);
       else reject(new Error(event.data.error ?? "อ่านไฟล์ไม่สำเร็จ"));
     };
-    worker.postMessage(bytes, [bytes]);
+    worker.postMessage(workerBytes, [workerBytes]);
   });
 }
