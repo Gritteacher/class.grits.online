@@ -122,6 +122,13 @@
 .preview-forgot-link:hover {
   color: var(--teal-dark);
 }
+
+.preview-auth-links {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
 .preview-sample-picker {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

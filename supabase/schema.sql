@@ -11,6 +11,7 @@ create table if not exists public.profiles (
   display_name text not null default '',
   student_code text unique,
   recovery_email text,
+  student_claimed_at timestamptz,
   status text not null default 'active' check (status in ('active', 'archived')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -18,7 +19,8 @@ create table if not exists public.profiles (
 
 alter table public.profiles
   add column if not exists status text not null default 'active',
-  add column if not exists recovery_email text;
+  add column if not exists recovery_email text,
+  add column if not exists student_claimed_at timestamptz;
 do $$ begin
   alter table public.profiles add constraint profiles_status_check check (status in ('active', 'archived'));
 exception when duplicate_object then null;

@@ -56,3 +56,19 @@ export async function resetStudentPassword(studentId: string, password: string) 
   const result = (await response.json().catch(() => ({}))) as { error?: string };
   if (!response.ok) throw new Error(result.error ?? "ตั้งรหัสผ่านใหม่ไม่สำเร็จ");
 }
+
+export async function claimStudentAccount(input: {
+  studentCode: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}) {
+  const response = await fetch("/.netlify/functions/claim-student-account", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const result = (await response.json().catch(() => ({}))) as { error?: string };
+  if (!response.ok) throw new Error(result.error ?? "สมัครใช้งานนักเรียนไม่สำเร็จ");
+}

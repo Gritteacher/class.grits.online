@@ -7,6 +7,7 @@ import {
   Users,
 } from "lucide-react";
 import { signIn, type UserRole } from "../services/authService";
+import { claimStudentAccount } from "../services/studentAccountService";
 import { LineAccountNotLinkedError } from "../services/lineAccountService";
 import { SchoolLogo } from "../components/SchoolLogo";
 import "./preview.css";
@@ -35,13 +36,20 @@ export function PreviewLogin({
   const [busy, setBusy] = useState(false);
   const [lineBusy, setLineBusy] = useState(false);
   const [lineNeedsLink, setLineNeedsLink] = useState(false);
+  const [studentSignup, setStudentSignup] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
   function submit(e: FormEvent) {
     e.preventDefault();
     setError("");
     void (async () => {
       setBusy(true);
       try {
-        await signIn(role as UserRole, role === "teacher" ? code : code, password);
+        if (role === "student" && studentSignup) {
+          await claimStudentAccount({ studentCode: code, firstName, lastName, email, password });
+        }
+        await signIn(role as UserRole, code, password);
         await onAuthenticated();
       } catch (e) {
         setError(e instanceof Error ? e.message : "เข้าสู่ระบบไม่สำเร็จ");
@@ -113,6 +121,7 @@ export function PreviewLogin({
             aria-pressed={role === "teacher"}
             onClick={() => {
               setRole("teacher");
+              setStudentSignup(false);
               setError("");
             }}
           >
@@ -168,8 +177,38 @@ export function PreviewLogin({
                 required
               />
             </label>
+            {role === "student" && studentSignup && (
+              <>
+                <label>
+                  ชื่อ
+                  <input
+                    value={firstName}
+                    onChange={(e) => { setFirstName(e.target.value); setError(""); }}
+                    required
+                  />
+                </label>
+                <label>
+                  นามสกุล
+                  <input
+                    value={lastName}
+                    onChange={(e) => { setLastName(e.target.value); setError(""); }}
+                    required
+                  />
+                </label>
+                <label>
+                  อีเมลสำหรับกู้รหัสผ่าน
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                    required
+                  />
+                </label>
+              </>
+            )}
             <label>
-              รหัสผ่าน
+              {studentSignup ? "ตั้งรหัสผ่าน" : "รหัสผ่าน"}
               <input
                 type="password"
                 autoComplete="current-password"
@@ -190,17 +229,20 @@ export function PreviewLogin({
             </p>
           )}
           <button className="button gold preview-enter" type="submit" disabled={busy}>
-            {busy ? "กำลังตรวจสอบ..." : role === "teacher" ? "เข้าสู่ระบบครู" : "เข้าสู่ระบบนักเรียน"}
+            {busy ? "กำลังตรวจสอบ..." : studentSignup ? "สมัครใช้งานนักเรียน" : role === "teacher" ? "เข้าสู่ระบบครู" : "เข้าสู่ระบบนักเรียน"}
             <ArrowRight size={18} />
           </button>
           {role === "student" && (
-            <button
-              type="button"
-              className="preview-forgot-link"
-              onClick={() => setError("ลืมรหัสผ่านใช่ไหม ให้ครูเปิดรายชื่อของคุณ แล้วเลือกแก้ไขเพื่อกำหนดรหัสผ่านใหม่")}
-            >
-              ลืมรหัสผ่าน?
-            </button>
+            <div className="preview-auth-links">
+              <button type="button" className="preview-forgot-link" onClick={() => { setStudentSignup(!studentSignup); setError(""); }}>
+                {studentSignup ? "มีบัญชีแล้ว เข้าสู่ระบบ" : "สมัครใช้งานนักเรียนครั้งแรก"}
+              </button>
+              {!studentSignup && (
+                <button type="button" className="preview-forgot-link" onClick={() => setError("ลืมรหัสผ่านใช่ไหม ให้ครูเปิดรายชื่อของคุณ แล้วเลือกแก้ไขเพื่อกำหนดรหัสผ่านใหม่")}>
+                  ลืมรหัสผ่าน?
+                </button>
+              )}
+            </div>
           )}
         </form>
       </main>
