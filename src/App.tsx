@@ -81,11 +81,10 @@ import {
   loadStudentProfile,
   loadTeacherRoster,
   removeClassroomFromSupabase,
-  removeStudentsFromClassroom,
   updateStudentInSupabase,
   updateStudentStatusInSupabase,
 } from "./services/classroomService";
-import { createStudentAccount, resetStudentPassword } from "./services/studentAccountService";
+import { createStudentAccount, deleteStudentAccount, resetStudentPassword } from "./services/studentAccountService";
 import type { ImportRow } from "./roster/importModel";
 import { applyWorkData, loadWork } from "./services/workService";
 import {
@@ -366,7 +365,6 @@ export function App() {
   async function createImportedAccounts(
     room: string,
     rows: ImportRow[],
-    password: string,
   ): Promise<State> {
     if (!identity || identity.profile.role !== "teacher")
       throw new Error("กรุณาเข้าสู่ระบบครูก่อน");
@@ -379,7 +377,6 @@ export function App() {
           displayName: row.input.name,
           classroomId,
           studentNumber: row.input.number,
-          password,
         });
       } catch (error) {
         failures.push(
@@ -397,7 +394,7 @@ export function App() {
   async function persistStudentToSupabase(
     next: State,
     previous: Student | undefined,
-    password?: string,
+    _password?: string,
   ): Promise<State> {
     if (!identity || identity.profile.role !== "teacher")
       throw new Error("กรุณาเข้าสู่ระบบครูก่อน");
@@ -412,8 +409,6 @@ export function App() {
         previousRoom: previous.room,
       });
     } else {
-      if (!password || password.length < 6)
-        throw new Error("รหัสผ่านเริ่มต้นต้องมีอย่างน้อย 6 ตัวอักษร");
       const classroomId = await getTeacherClassroomId(
         identity.profile.id,
         studentToSave.room,
@@ -423,7 +418,6 @@ export function App() {
         displayName: studentToSave.name,
         classroomId,
         studentNumber: studentToSave.number,
-        password,
       });
     }
     const roster = await loadTeacherRoster(identity.profile.id);
@@ -443,7 +437,7 @@ export function App() {
   async function persistStudentDeletion(next: State, ids: string[]): Promise<State> {
     if (!identity || identity.profile.role !== "teacher")
       throw new Error("กรุณาเข้าสู่ระบบครูก่อน");
-    await removeStudentsFromClassroom(identity.profile.id, ids);
+    for (const id of ids) await deleteStudentAccount(id);
     const roster = await loadTeacherRoster(identity.profile.id);
     return applyTeacherRoster(next, roster);
   }

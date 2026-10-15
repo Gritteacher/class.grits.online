@@ -38,7 +38,6 @@ export function ImportStudents({
   onCreateAccounts?: (
     room: string,
     rows: ImportRow[],
-    password: string,
   ) => Promise<State>;
   onClose: () => void;
 }) {
@@ -53,7 +52,6 @@ export function ImportStudents({
   const [page, setPage] = useState(0);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [password, setPassword] = useState("");
   const controller = useRef<AbortController | null>(null);
   const saving = useRef(false);
   useEffect(() => () => controller.current?.abort(), []);
@@ -113,18 +111,13 @@ export function ImportStudents({
       const next = importStudents(state, selected);
       let persistedState = next;
       if (onCreateAccounts) {
-        if (password.length < 6) {
-          setError("กำหนดรหัสผ่านเริ่มต้นอย่างน้อย 6 ตัวอักษร");
-          return;
-        }
         setBusy(true);
-        persistedState = await onCreateAccounts(room, selected, password);
+        persistedState = await onCreateAccounts(room, selected);
       }
       if (!onSave(persistedState, room, selected.length)) {
         setError("บันทึกไม่สำเร็จ ยังไม่เพิ่มรายชื่อใด ๆ กรุณาลองอีกครั้ง");
         return;
       }
-      setPassword("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "นำเข้ารายชื่อไม่สำเร็จ");
     } finally {
@@ -189,20 +182,7 @@ export function ImportStudents({
             ใช้หัวตาราง เลขที่ · เลขประจำตัว · คำนำหน้า · ชื่อ · สกุล
           </span>
         </div>
-        {onCreateAccounts && (
-          <label>
-            รหัสผ่านเริ่มต้นสำหรับบัญชีใหม่
-            <input
-              type="password"
-              minLength={6}
-              autoComplete="new-password"
-              value={password}
-              placeholder="อย่างน้อย 6 ตัวอักษร"
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <small className="muted">นักเรียนเปลี่ยนรหัสผ่านได้ภายหลัง</small>
-          </label>
-        )}
+        {onCreateAccounts && <p className="muted">ระบบจะสร้างบัญชีให้นักเรียนโดยไม่ต้องกำหนดรหัสผ่าน นักเรียนตั้งรหัสผ่านเองในขั้นตอนสมัครใช้งานครั้งแรก</p>}
         {fileName && (
           <p className="import-file-name">
             <FileSpreadsheet size={18} />

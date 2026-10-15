@@ -5,11 +5,11 @@ export async function createStudentAccount(input: {
   displayName: string;
   classroomId: string;
   studentNumber: number;
-  password: string;
+  password?: string;
 }) {
   const code = input.studentCode.trim();
   if (!code) throw new Error("กรอกรหัสนักเรียนก่อน");
-  if (input.password.length < 6) throw new Error("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
+  if (input.password && input.password.length < 6) throw new Error("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
 
   // Force Supabase to validate/refresh the current session before sending it
   // to the server function. getSession() alone can return an expired cached JWT.
@@ -55,6 +55,19 @@ export async function resetStudentPassword(studentId: string, password: string) 
   });
   const result = (await response.json().catch(() => ({}))) as { error?: string };
   if (!response.ok) throw new Error(result.error ?? "ตั้งรหัสผ่านใหม่ไม่สำเร็จ");
+}
+
+export async function deleteStudentAccount(studentId: string) {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("session หมดอายุ กรุณาเข้าสู่ระบบใหม่");
+  const response = await fetch("/.netlify/functions/delete-student-account", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ studentId }),
+  });
+  const result = (await response.json().catch(() => ({}))) as { error?: string };
+  if (!response.ok) throw new Error(result.error ?? "ลบบัญชีนักเรียนไม่สำเร็จ");
 }
 
 export async function claimStudentAccount(input: {

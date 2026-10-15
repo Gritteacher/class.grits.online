@@ -34,14 +34,16 @@ export async function handler(event) {
   const code = String(input.studentCode || "").trim();
   const displayName = String(input.displayName || "").trim();
   const classroomId = String(input.classroomId || "").trim();
-  const password = String(input.password || "");
+  // The teacher no longer needs to handle a shared starter password. A random
+  // internal password keeps the Auth user creatable until the student claims it.
+  const password = String(input.password || `${crypto.randomUUID()}-${crypto.randomUUID()}`);
   const studentNumber = Number(input.studentNumber);
   if (!/^\d{1,20}$/.test(code)) return json(400, { error: "รหัสนักเรียนไม่ถูกต้อง" });
   if (!displayName || displayName.length > 120) return json(400, { error: "ชื่อ–สกุลไม่ถูกต้อง" });
   if (!classroomId || !Number.isInteger(studentNumber) || studentNumber < 1) {
     return json(400, { error: "ข้อมูลห้องเรียนหรือเลขที่ไม่ถูกต้อง" });
   }
-  if (password.length < 6) return json(400, { error: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร" });
+  if (password.length < 6) return json(400, { error: "ไม่สามารถสร้างรหัสผ่านภายในได้" });
 
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },

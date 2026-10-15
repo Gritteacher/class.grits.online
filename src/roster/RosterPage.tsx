@@ -57,7 +57,6 @@ export function RosterPage({
   onCreateAccounts?: (
     room: string,
     rows: ImportRow[],
-    password: string,
   ) => Promise<State>;
   onPersistStudent?: PersistStudent;
   onPersistStatus?: PersistStatus;
@@ -435,7 +434,7 @@ export function RosterPage({
               {dialog.type === "removeRoom"
                 ? "ลบได้เฉพาะห้องว่างที่ไม่มีนักเรียนหรือประวัติงาน"
                 : dialog.type === "deleteStudents"
-                  ? "รายชื่อจะถูกนำออกจากห้องเรียน บัญชีจะถูกพักไว้ และคะแนนกับประวัติงานเดิมจะยังเก็บไว้"
+                  ? "การลบจะลบบัญชีนักเรียน โปรไฟล์ และข้อมูลที่ผูกกับบัญชีนี้ออกจากระบบถาวร"
                 : "งาน คะแนน และอวตาร์เดิมจะยังอยู่ครบ สามารถคืนรายชื่อกลับมาใช้งานได้"}
             </p>
             {(dialog.type === "archive" || dialog.type === "restore" || dialog.type === "deleteStudents") && (
@@ -585,7 +584,6 @@ function StudentForm({
     room: student?.room ?? room,
     number: student ? String(student.number) : "",
   });
-  const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState("");
@@ -593,17 +591,13 @@ function StudentForm({
   async function submit(e: FormEvent) {
     e.preventDefault();
     try {
-      if (!student && password.length < 6) {
-        setError("รหัสผ่านเริ่มต้นต้องมีอย่างน้อย 6 ตัวอักษร");
-        return;
-      }
       const next = saveStudent(
         state,
         { ...values, number: Number(values.number) },
         student?.id,
       );
       const saved = onPersist
-        ? await onPersist(next, student, password)
+        ? await onPersist(next, student)
         : next;
       if (!onSave(saved, student ? "แก้ไขรายชื่อแล้ว" : "เพิ่มนักเรียนแล้ว")) {
         setError("บันทึกไม่สำเร็จ ข้อมูลที่กรอกยังอยู่ กรุณาลองอีกครั้ง");
@@ -660,17 +654,9 @@ function StudentForm({
             />
           </label>
           {!student && (
-            <label>
-              รหัสผ่านเริ่มต้น
-              <input
-                type="password"
-                minLength={6}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="อย่างน้อย 6 ตัวอักษร"
-              />
-            </label>
+            <p className="muted">
+              นักเรียนจะสมัครใช้งานและตั้งรหัสผ่านด้วยตัวเองหลังจากครูเพิ่มรายชื่อ
+            </p>
           )}
           {student && onResetPassword && (
             <div className="student-password-reset">
