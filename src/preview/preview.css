@@ -108,6 +108,20 @@
   margin-top: 24px;
   justify-content: space-between;
 }
+.preview-forgot-link {
+  display: block;
+  margin: 14px auto 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.preview-forgot-link:hover {
+  color: var(--teal-dark);
+}
 .preview-sample-picker {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

@@ -409,6 +409,18 @@ a {
   align-items: center;
   color: var(--muted);
 }
+.account-button {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.account-button:hover {
+  color: var(--teal-dark);
+}
+.account-icon {
+  display: none;
+}
 .main-content {
   max-width: 1288px;
   padding: 32px 24px 0;
@@ -1749,6 +1761,9 @@ legend {
   }
   .role-label {
     display: none;
+  }
+  .account-icon {
+    display: inline-flex;
   }
   .header-actions {
     gap: 0;

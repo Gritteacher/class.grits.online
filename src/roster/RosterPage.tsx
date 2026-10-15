@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, type FormEvent } from "react";
 import {
   Archive,
   Check,
+  KeyRound,
   Pencil,
   Plus,
   RotateCcw,
@@ -39,6 +40,7 @@ type PersistStatus = (
 ) => Promise<State>;
 type PersistDeletion = (next: State, ids: string[]) => Promise<State>;
 type PersistRoomDeletion = (next: State, room: string) => Promise<State>;
+type ResetStudentPassword = (studentId: string, password: string) => Promise<void>;
 
 export function RosterPage({
   state,
@@ -48,6 +50,7 @@ export function RosterPage({
   onPersistStatus,
   onPersistDeletion,
   onPersistRoomDeletion,
+  onResetStudentPassword,
 }: {
   state: State;
   onSave: Commit;
@@ -60,6 +63,7 @@ export function RosterPage({
   onPersistStatus?: PersistStatus;
   onPersistDeletion?: PersistDeletion;
   onPersistRoomDeletion?: PersistRoomDeletion;
+  onResetStudentPassword?: ResetStudentPassword;
 }) {
   const [room, setRoom] = useState(state.rooms[0] ?? "");
   const [query, setQuery] = useState("");
@@ -379,8 +383,9 @@ export function RosterPage({
           state={state}
           room={currentRoom}
           student={dialog.student}
-          onPersist={onPersistStudent}
-          onClose={() => setDialog(null)}
+              onPersist={onPersistStudent}
+              onResetPassword={onResetStudentPassword}
+              onClose={() => setDialog(null)}
           onSave={(next, message) => {
             if (!onSave(next, message)) return false;
             setDialog(null);
@@ -563,6 +568,7 @@ function StudentForm({
   student,
   onSave,
   onPersist,
+  onResetPassword,
   onClose,
 }: {
   state: State;
@@ -570,6 +576,7 @@ function StudentForm({
   student?: Student;
   onSave: Commit;
   onPersist?: PersistStudent;
+  onResetPassword?: ResetStudentPassword;
   onClose: () => void;
 }) {
   const [values, setValues] = useState({
@@ -579,6 +586,9 @@ function StudentForm({
     number: student ? String(student.number) : "",
   });
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState("");
   const [error, setError] = useState("");
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -600,6 +610,24 @@ function StudentForm({
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "บันทึกรายชื่อไม่สำเร็จ");
+    }
+  }
+  async function resetPassword() {
+    if (!student || !onResetPassword) return;
+    setResetError("");
+    if (newPassword.length < 6) {
+      setResetError("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
+      return;
+    }
+    setResetting(true);
+    try {
+      await onResetPassword(student.id, newPassword);
+      setNewPassword("");
+      setResetError("");
+    } catch (e) {
+      setResetError(e instanceof Error ? e.message : "ตั้งรหัสผ่านใหม่ไม่สำเร็จ");
+    } finally {
+      setResetting(false);
     }
   }
   return (
@@ -643,6 +671,26 @@ function StudentForm({
                 placeholder="อย่างน้อย 6 ตัวอักษร"
               />
             </label>
+          )}
+          {student && onResetPassword && (
+            <div className="student-password-reset">
+              <label>
+                ตั้งรหัสผ่านใหม่ให้นักเรียน
+                <input
+                  type="password"
+                  minLength={6}
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="อย่างน้อย 6 ตัวอักษร"
+                />
+              </label>
+              <button type="button" className="button neutral" disabled={resetting} onClick={() => void resetPassword()}>
+                <KeyRound size={16} />
+                {resetting ? "กำลังตั้งรหัส..." : "บันทึกรหัสผ่านใหม่"}
+              </button>
+              {resetError && <p className="form-error" role="alert">{resetError}</p>}
+            </div>
           )}
           <div className="form-columns">
             <label>

@@ -193,6 +193,15 @@ export function PreviewLogin({
             {busy ? "กำลังตรวจสอบ..." : role === "teacher" ? "เข้าสู่ระบบครู" : "เข้าสู่ระบบนักเรียน"}
             <ArrowRight size={18} />
           </button>
+          {role === "student" && (
+            <button
+              type="button"
+              className="preview-forgot-link"
+              onClick={() => setError("ลืมรหัสผ่านใช่ไหม ให้ครูเปิดรายชื่อของคุณ แล้วเลือกแก้ไขเพื่อกำหนดรหัสผ่านใหม่")}
+            >
+              ลืมรหัสผ่าน?
+            </button>
+          )}
         </form>
       </main>
     </div>

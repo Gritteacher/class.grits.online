@@ -75,3 +75,9 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw new Error("ออกจากระบบไม่สำเร็จ กรุณาลองใหม่");
 }
+
+export async function updatePassword(password: string) {
+  if (password.length < 6) throw new Error("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw new Error("เปลี่ยนรหัสผ่านไม่สำเร็จ กรุณาลองใหม่");
+}

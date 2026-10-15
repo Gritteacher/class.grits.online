@@ -11,6 +11,7 @@ import {
   FlaskConical,
   GraduationCap,
   LayoutDashboard,
+  KeyRound,
   LogOut,
   Moon,
   MoreHorizontal,
@@ -70,6 +71,7 @@ import {
   signOut,
   type AuthIdentity,
 } from "./services/authService";
+import { PasswordDialog } from "./auth/PasswordDialog";
 import { supabase } from "./lib/supabase";
 import {
   applyTeacherRoster,
@@ -82,7 +84,7 @@ import {
   updateStudentInSupabase,
   updateStudentStatusInSupabase,
 } from "./services/classroomService";
-import { createStudentAccount } from "./services/studentAccountService";
+import { createStudentAccount, resetStudentPassword } from "./services/studentAccountService";
 import type { ImportRow } from "./roster/importModel";
 import { applyWorkData, loadWork } from "./services/workService";
 import {
@@ -118,6 +120,7 @@ export function App() {
   const [activeId, setActiveId] = useState("");
   const [dark, setDark] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [passwordDialog, setPasswordDialog] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const [newTask, setNewTask] = useState(false);
   const [editing, setEditing] = useState<Assignment | null>(null);
@@ -694,11 +697,26 @@ export function App() {
             >
               {dark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            <span className="role-label">
+            <button
+              className="role-label account-button"
+              type="button"
+              title="บัญชีและรหัสผ่าน"
+              onClick={() => setPasswordDialog(true)}
+            >
               <GraduationCap size={18} />
               {identity?.profile.display_name ||
                 (role === "teacher" ? "ครูไต๋" : student?.name.split(" ")[0])}
-            </span>
+              <KeyRound size={14} aria-hidden="true" />
+            </button>
+            <button
+              className="icon-button account-icon"
+              type="button"
+              title="เปลี่ยนรหัสผ่าน"
+              aria-label="เปลี่ยนรหัสผ่าน"
+              onClick={() => setPasswordDialog(true)}
+            >
+              <KeyRound size={18} />
+            </button>
             <button
               className="icon-button logout-button"
               title="ออกจากระบบ"
@@ -797,6 +815,7 @@ export function App() {
               onPersistStatus={identity ? persistStudentStatusToSupabase : undefined}
               onPersistDeletion={identity ? persistStudentDeletion : undefined}
               onPersistRoomDeletion={identity ? persistRoomDeletion : undefined}
+              onResetStudentPassword={identity ? resetStudentPassword : undefined}
             />
           ) : page === "today" ? (
             <TeacherHome
@@ -1131,6 +1150,12 @@ export function App() {
             }
             return false;
           }}
+        />
+      )}
+      {passwordDialog && (
+        <PasswordDialog
+          onClose={() => setPasswordDialog(false)}
+          onSaved={() => setNotice({ text: "เปลี่ยนรหัสผ่านเรียบร้อยแล้ว" })}
         />
       )}
     </div>

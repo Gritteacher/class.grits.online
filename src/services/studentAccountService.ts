@@ -42,3 +42,17 @@ export async function createStudentAccount(input: {
   }
   return payload;
 }
+
+export async function resetStudentPassword(studentId: string, password: string) {
+  if (password.length < 6) throw new Error("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("session หมดอายุ กรุณาเข้าสู่ระบบใหม่");
+  const response = await fetch("/.netlify/functions/reset-student-password", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ studentId, password }),
+  });
+  const result = (await response.json().catch(() => ({}))) as { error?: string };
+  if (!response.ok) throw new Error(result.error ?? "ตั้งรหัสผ่านใหม่ไม่สำเร็จ");
+}
