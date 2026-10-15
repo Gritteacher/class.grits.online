@@ -7,6 +7,7 @@ import {
   Users,
 } from "lucide-react";
 import { signIn, type UserRole } from "../services/authService";
+import { LineAccountNotLinkedError } from "../services/lineAccountService";
 import { SchoolLogo } from "../components/SchoolLogo";
 import "./preview.css";
 
@@ -15,17 +16,25 @@ export function PreviewLogin({
   onTheme,
   initialRole = "teacher",
   onAuthenticated,
+  lineAvailable = false,
+  onLineLogin,
+  onLineLink,
 }: {
   dark: boolean;
   onTheme: () => void;
   initialRole?: "teacher" | "student";
   onAuthenticated: () => Promise<void>;
+  lineAvailable?: boolean;
+  onLineLogin?: () => Promise<void>;
+  onLineLink?: () => Promise<void>;
 }) {
   const [role, setRole] = useState(initialRole);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [lineBusy, setLineBusy] = useState(false);
+  const [lineNeedsLink, setLineNeedsLink] = useState(false);
   function submit(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -40,6 +49,33 @@ export function PreviewLogin({
         setBusy(false);
       }
     })();
+  }
+  async function continueWithLine() {
+    if (!onLineLogin || !onLineLink) return;
+    setError("");
+    setLineBusy(true);
+    try {
+      if (lineNeedsLink) {
+        if (role !== "student" || !code.trim() || !password) {
+          throw new Error("กรอกรหัสนักเรียนและรหัสผ่านก่อนเชื่อมบัญชี LINE");
+        }
+        await signIn("student", code, password);
+        await onLineLink();
+        await onAuthenticated();
+      } else {
+        await onLineLogin();
+        await onAuthenticated();
+      }
+    } catch (e) {
+      if (e instanceof LineAccountNotLinkedError) {
+        setLineNeedsLink(true);
+        setError("LINE นี้ยังไม่เชื่อมบัญชี กรอกรหัสนักเรียนและรหัสผ่านเดิม แล้วกดปุ่มอีกครั้ง");
+      } else {
+        setError(e instanceof Error ? e.message : "เข้าสู่ระบบด้วย LINE ไม่สำเร็จ");
+      }
+    } finally {
+      setLineBusy(false);
+    }
   }
   return (
     <div className="preview-login">
@@ -94,6 +130,27 @@ export function PreviewLogin({
             นักเรียน
           </button>
         </div>
+        {role === "student" && lineAvailable && (
+          <section className="line-login-panel">
+            <button
+              className="button preview-line-button"
+              type="button"
+              onClick={() => void continueWithLine()}
+              disabled={busy || lineBusy}
+            >
+              {lineBusy
+                ? "กำลังเชื่อมต่อ LINE..."
+                : lineNeedsLink
+                  ? "เชื่อม LINE กับบัญชีนี้"
+                  : "เข้าสู่ระบบด้วย LINE"}
+            </button>
+            <p>
+              {lineNeedsLink
+                ? "ใช้ข้อมูลนักเรียนเดิมเพื่อยืนยันการเชื่อมบัญชีครั้งแรก"
+                : "เข้าใช้งานด้วย LINE ที่เชื่อมไว้"}
+            </p>
+          </section>
+        )}
         <form className="preview-login-form" onSubmit={submit}>
           <div className="form-stack">
             <label>

@@ -182,6 +182,16 @@ create table if not exists public.student_avatars (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.line_account_links (
+  id uuid primary key default gen_random_uuid(),
+  line_user_id text not null unique,
+  student_id uuid not null unique references public.profiles(id) on delete cascade,
+  linked_at timestamptz not null default now(),
+  last_login_at timestamptz
+);
+
+create index if not exists line_account_links_student_idx on public.line_account_links(student_id);
+
 create index if not exists classroom_members_student_idx on public.classroom_members(student_id);
 create index if not exists assignment_classrooms_classroom_idx on public.assignment_classrooms(classroom_id);
 create index if not exists submissions_student_idx on public.submissions(student_id);
@@ -272,7 +282,7 @@ begin
     'material_classrooms', 'announcements', 'assignments',
     'assignment_classrooms', 'submissions', 'score_entries',
     'material_download_logs', 'student_rewards', 'growth_events',
-    'growth_observations', 'student_avatars'
+    'growth_observations', 'student_avatars', 'line_account_links'
   ] loop
     execute format('alter table public.%I enable row level security', table_name);
   end loop;

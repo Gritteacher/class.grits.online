@@ -70,6 +70,30 @@
   text-align: left;
   padding-top: 24px;
 }
+.line-login-panel {
+  display: grid;
+  gap: 6px;
+  margin-top: 20px;
+  padding: 14px;
+  border: 1px solid #06c75555;
+  border-radius: 12px;
+  background: #06c7550d;
+  text-align: center;
+}
+.preview-line-button {
+  width: 100%;
+  justify-content: center;
+  background: #06c755;
+  color: #fff;
+}
+.preview-line-button:hover {
+  background: #05ad4a;
+}
+.line-login-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
 .preview-teacher h2 {
   font-size: 20px;
   margin: 0 0 8px;
