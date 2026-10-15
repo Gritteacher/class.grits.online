@@ -3,6 +3,6 @@ dist/
 .netlify/
 .env*
 !.env.example
-test-results/
+test-results*/
 playwright-report/
 .DS_Store
