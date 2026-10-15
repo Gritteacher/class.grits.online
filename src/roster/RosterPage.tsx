@@ -327,22 +327,24 @@ export function RosterPage({
                     {s.status === "archived" ? " · พักรายชื่อไว้" : ""}
                   </p>
                 </div>
-                <button
-                  className="icon-button"
-                  aria-label={`แก้ไข ${s.name}`}
-                  title="แก้ไขรายชื่อ"
-                  onClick={() => open({ type: "student", student: s })}
-                >
-                  <Pencil size={17} />
-                </button>
-                <button
-                  className="icon-button danger"
-                  aria-label={`ลบ ${s.name}`}
-                  title="ลบรายชื่อ"
-                  onClick={() => open({ type: "deleteStudents", ids: [s.id] })}
-                >
-                  <Trash2 size={17} />
-                </button>
+                <div className="roster-person-actions">
+                  <button
+                    className="icon-button"
+                    aria-label={`แก้ไข ${s.name}`}
+                    title="แก้ไขรายชื่อ"
+                    onClick={() => open({ type: "student", student: s })}
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    className="icon-button danger"
+                    aria-label={`ลบ ${s.name}`}
+                    title="ลบรายชื่อ"
+                    onClick={() => open({ type: "deleteStudents", ids: [s.id] })}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </article>
             ))}
           </div>

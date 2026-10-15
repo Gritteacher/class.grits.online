@@ -110,7 +110,7 @@
 }
 .roster-person {
   display: grid;
-  grid-template-columns: 20px 42px minmax(0, 1fr) 44px;
+  grid-template-columns: 20px 42px minmax(0, 1fr) auto;
   gap: 16px;
   align-items: center;
   padding: 18px 0;
@@ -142,9 +142,20 @@
   color: var(--muted);
   font-size: 12px;
 }
-.roster-person .icon-button {
-  width: 42px;
-  height: 42px;
+.roster-person-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.roster-person-actions .icon-button {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+}
+.roster-person-actions .icon-button.danger {
+  color: var(--coral);
+  border-color: transparent;
+  background: transparent;
 }
 .roster-confirm-names {
   max-height: 220px;
@@ -176,7 +187,7 @@
     gap: 10px;
   }
   .roster-person {
-    grid-template-columns: 20px 30px minmax(0, 1fr) 42px;
+    grid-template-columns: 20px 30px minmax(0, 1fr) auto;
     gap: 9px;
     padding: 14px 0;
   }
