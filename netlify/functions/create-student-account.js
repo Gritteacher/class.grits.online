@@ -24,6 +24,27 @@ async function findAuthUserByEmail(admin, email) {
   return null;
 }
 
+function authFailureMessage(error) {
+  const code = String(error?.code || error?.status || "").toLowerCase();
+  const message = String(error?.message || "").toLowerCase();
+  if (code.includes("rate") || message.includes("rate limit") || message.includes("too many")) {
+    return "ระบบจำกัดการสร้างบัญชีชั่วคราว กรุณารอสักครู่แล้วลองใหม่";
+  }
+  if (code.includes("email_address_invalid") || message.includes("invalid email")) {
+    return "ระบบสร้างบัญชีภายในไม่สำเร็จ กรุณาตรวจการตั้งค่าอีเมลของระบบ";
+  }
+  return "สร้างบัญชีนักเรียนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
+}
+
+function logAuthError(stage, error, context = {}) {
+  console.error(`[create-student-account] ${stage}`, {
+    ...context,
+    code: error?.code || null,
+    status: error?.status || null,
+    message: error?.message || String(error || "unknown error"),
+  });
+}
+
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") return json(204, {});
   if (event.httpMethod !== "POST") return json(405, { error: "Method not allowed" });
@@ -47,7 +68,10 @@ export async function handler(event) {
   const classroomId = String(input.classroomId || "").trim();
   // The teacher no longer needs to handle a shared starter password. A random
   // internal password keeps the Auth user creatable until the student claims it.
-  const password = String(input.password || `${crypto.randomUUID()}-${crypto.randomUUID()}`);
+  // Supabase Auth rejects passwords longer than 72 characters. One UUID is
+  // sufficient for this hidden bootstrap password; students replace it when
+  // they claim the account.
+  const password = String(input.password || crypto.randomUUID());
   const studentNumber = Number(input.studentNumber);
   if (!/^\d{1,20}$/.test(code)) return json(400, { error: "รหัสนักเรียนไม่ถูกต้อง" });
   if (!displayName || displayName.length > 120) return json(400, { error: "ชื่อ–สกุลไม่ถูกต้อง" });
@@ -66,26 +90,38 @@ export async function handler(event) {
     });
   }
 
-  const { data: teacher } = await admin
+  const { data: teacher, error: teacherError } = await admin
     .from("profiles")
     .select("id, role")
     .eq("id", caller.user.id)
     .maybeSingle();
+  if (teacherError) {
+    console.error("[create-student-account] teacher profile lookup failed", teacherError);
+    return json(500, { error: "ตรวจสอบข้อมูลครูไม่สำเร็จ กรุณาลองใหม่" });
+  }
   if (!teacher || teacher.role !== "teacher") return json(403, { error: "เฉพาะครูเท่านั้นที่สร้างบัญชีนักเรียนได้" });
 
-  const { data: classroom } = await admin
+  const { data: classroom, error: classroomError } = await admin
     .from("classrooms")
     .select("id")
     .eq("id", classroomId)
     .eq("teacher_id", caller.user.id)
     .maybeSingle();
+  if (classroomError) {
+    console.error("[create-student-account] classroom lookup failed", classroomError);
+    return json(500, { error: "ตรวจสอบห้องเรียนไม่สำเร็จ กรุณาลองใหม่" });
+  }
   if (!classroom) return json(403, { error: "ครูไม่มีสิทธิ์จัดการห้องเรียนนี้" });
 
-  const { data: existing } = await admin
+  const { data: existing, error: existingError } = await admin
     .from("profiles")
     .select("id, display_name, role, status")
     .eq("student_code", code)
     .maybeSingle();
+  if (existingError) {
+    console.error("[create-student-account] student lookup failed", existingError);
+    return json(500, { error: "ตรวจสอบรหัสนักเรียนไม่สำเร็จ กรุณาลองใหม่" });
+  }
   if (existing) {
     if (existing.role !== "student") return json(409, { error: "รหัสนี้ถูกใช้กับบัญชีครูแล้ว" });
     const { data: membership, error: membershipError } = await admin
@@ -104,12 +140,18 @@ export async function handler(event) {
       student_id: existing.id,
       student_number: studentNumber,
     });
-    if (attachError) return json(400, { error: "ผูกนักเรียนเข้าห้องเรียนไม่สำเร็จ" });
+    if (attachError) {
+      console.error("[create-student-account] repair membership failed", attachError);
+      return json(400, { error: "ผูกนักเรียนเข้าห้องเรียนไม่สำเร็จ กรุณาตรวจเลขที่แล้วลองใหม่" });
+    }
     const { error: profileUpdateError } = await admin
       .from("profiles")
       .update({ display_name: displayName, status: "active" })
       .eq("id", existing.id);
-    if (profileUpdateError) return json(400, { error: "ผูกห้องสำเร็จ แต่ปรับข้อมูลนักเรียนไม่สำเร็จ" });
+    if (profileUpdateError) {
+      console.error("[create-student-account] repair profile update failed", profileUpdateError);
+      return json(400, { error: "ผูกห้องสำเร็จ แต่ปรับข้อมูลนักเรียนไม่สำเร็จ" });
+    }
     return json(200, {
       id: existing.id,
       studentCode: code,
@@ -127,7 +169,11 @@ export async function handler(event) {
   });
   if (created?.user) {
     authUser = created.user;
-  } else if (createError?.message?.toLowerCase().includes("already") || createError?.code === "email_exists") {
+  } else if (
+    createError?.message?.toLowerCase().includes("already")
+    || createError?.code === "email_exists"
+    || createError?.code === "user_already_exists"
+  ) {
     // A previous delete may have removed the profile but left the Auth user.
     // Reuse that orphaned Auth account instead of forcing a new student code.
     authUser = await findAuthUserByEmail(admin, email);
@@ -136,10 +182,16 @@ export async function handler(event) {
         password,
         email_confirm: true,
       });
-      if (resetError) return json(400, { error: "กู้คืนบัญชีนักเรียนเดิมไม่สำเร็จ" });
+      if (resetError) {
+        logAuthError("orphan account recovery failed", resetError, { email });
+        return json(400, { error: "กู้คืนบัญชีนักเรียนเดิมไม่สำเร็จ" });
+      }
     }
   }
-  if (!authUser) return json(400, { error: "สร้างบัญชีนักเรียนไม่สำเร็จ" });
+  if (!authUser) {
+    logAuthError("create auth user failed", createError, { email });
+    return json(400, { error: authFailureMessage(createError) });
+  }
 
   const { error: profileError } = await admin.from("profiles").insert({
     id: authUser.id,
@@ -155,8 +207,15 @@ export async function handler(event) {
         student_number: studentNumber,
       });
   if (profileError || memberError) {
-    await admin.auth.admin.deleteUser(authUser.id);
-    return json(400, { error: "บันทึกข้อมูลนักเรียนไม่สำเร็จ บัญชีถูกยกเลิกแล้ว" });
+    if (profileError) console.error("[create-student-account] profile insert failed", profileError);
+    if (memberError) console.error("[create-student-account] membership insert failed", memberError);
+    const cleanup = await admin.auth.admin.deleteUser(authUser.id);
+    if (cleanup.error) logAuthError("auth cleanup after create failure failed", cleanup.error, { userId: authUser.id });
+    return json(400, {
+      error: profileError
+        ? "สร้างบัญชีแล้ว แต่บันทึกข้อมูลนักเรียนไม่สำเร็จ บัญชีถูกยกเลิกแล้ว"
+        : "สร้างบัญชีแล้ว แต่เพิ่มนักเรียนเข้าห้องไม่สำเร็จ บัญชีถูกยกเลิกแล้ว",
+    });
   }
   return json(200, { id: authUser.id, studentCode: code, displayName });
 }
