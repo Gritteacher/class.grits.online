@@ -189,7 +189,7 @@ export function PreviewLogin({
             </label>
             {role === "student" && studentSignup && (
               <>
-                <p className="preview-signup-hint">กรอกชื่อและนามสกุลให้ตรงกับรายชื่อที่ครูเตรียมไว้ ไม่ต้องใส่คำนำหน้า เช่น นาย นางสาว เด็กชาย หรือเด็กหญิง</p>
+                <p className="preview-signup-hint" role="note">โปรดตรวจสอบชื่อและนามสกุลให้ถูกต้อง กรอกให้ตรงกับข้อมูลในระบบ และไม่ต้องใส่คำนำหน้า เช่น นาย นางสาว เด็กชาย หรือเด็กหญิง</p>
                 <label>
                   ชื่อ
                   <input

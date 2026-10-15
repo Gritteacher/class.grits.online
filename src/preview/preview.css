@@ -52,7 +52,11 @@
 }
 .preview-signup-hint {
   margin: -2px 0 0;
-  color: var(--muted);
+  padding: 11px 12px;
+  color: #8a5a18;
+  border: 1px solid #e9c978;
+  border-radius: 10px;
+  background: #fff7dc;
   font-size: 11px;
   line-height: 1.7;
 }
