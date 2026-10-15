@@ -38,6 +38,7 @@ export function ImportStudents({
   onCreateAccounts?: (
     room: string,
     rows: ImportRow[],
+    onProgress?: (progress: { completed: number; total: number; failed: number }) => void,
   ) => Promise<State>;
   onClose: () => void;
 }) {
@@ -52,6 +53,8 @@ export function ImportStudents({
   const [page, setPage] = useState(0);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [busyStage, setBusyStage] = useState<"reading" | "creating" | null>(null);
+  const [importProgress, setImportProgress] = useState({ completed: 0, total: 0, failed: 0 });
   const controller = useRef<AbortController | null>(null);
   const saving = useRef(false);
   useEffect(() => () => controller.current?.abort(), []);
@@ -85,6 +88,7 @@ export function ImportStudents({
     const active = new AbortController();
     controller.current = active;
     setBusy(true);
+    setBusyStage("reading");
     setError("");
     setSheets([]);
     setFileName(file.name);
@@ -99,7 +103,10 @@ export function ImportStudents({
       if (!active.signal.aborted)
         setError(e instanceof Error ? e.message : "อ่านไฟล์ไม่สำเร็จ");
     } finally {
-      if (!active.signal.aborted) setBusy(false);
+      if (!active.signal.aborted) {
+        setBusy(false);
+        setBusyStage(null);
+      }
     }
   }
   async function confirm() {
@@ -112,7 +119,9 @@ export function ImportStudents({
       let persistedState = next;
       if (onCreateAccounts) {
         setBusy(true);
-        persistedState = await onCreateAccounts(room, selected);
+        setBusyStage("creating");
+        setImportProgress({ completed: 0, total: selected.length, failed: 0 });
+        persistedState = await onCreateAccounts(room, selected, setImportProgress);
       }
       if (!onSave(persistedState, room, selected.length)) {
         setError("บันทึกไม่สำเร็จ ยังไม่เพิ่มรายชื่อใด ๆ กรุณาลองอีกครั้ง");
@@ -122,6 +131,7 @@ export function ImportStudents({
       setError(e instanceof Error ? e.message : "นำเข้ารายชื่อไม่สำเร็จ");
     } finally {
       setBusy(false);
+      setBusyStage(null);
       saving.current = false;
     }
   }
@@ -189,7 +199,28 @@ export function ImportStudents({
             {fileName}
           </p>
         )}
-        {busy && <p role="status">กำลังอ่านไฟล์…</p>}
+        {busyStage === "reading" && (
+          <div className="import-progress-card is-reading" role="status" aria-live="polite">
+            <span className="loading-spinner" aria-hidden="true" />
+            <span>กำลังอ่านไฟล์และเตรียมรายชื่อ…</span>
+          </div>
+        )}
+        {busyStage === "creating" && (
+          <div className="import-progress-card" role="status" aria-live="polite">
+            <div className="import-progress-heading">
+              <span className="loading-spinner" aria-hidden="true" />
+              <strong>กำลังสร้างบัญชีนักเรียน</strong>
+              <span>{importProgress.completed} / {importProgress.total}</span>
+            </div>
+            <div className="import-progress-track" aria-hidden="true">
+              <span style={{ width: `${importProgress.total ? (importProgress.completed / importProgress.total) * 100 : 0}%` }} />
+            </div>
+            <span className="muted">
+              ระบบกำลังดำเนินการ ไม่ต้องปิดหน้าต่างนี้
+              {importProgress.failed ? ` · ไม่สำเร็จ ${importProgress.failed} คน` : ""}
+            </span>
+          </div>
+        )}
         {sheet && (
           <>
             <div className="form-columns">
@@ -420,8 +451,12 @@ export function ImportStudents({
           }
           onClick={confirm}
         >
-          {sheet ? <Check size={17} /> : <Upload size={17} />}ยืนยันนำเข้า{" "}
-          {selected.length} คน
+          {busy ? <span className="loading-spinner" aria-hidden="true" /> : sheet ? <Check size={17} /> : <Upload size={17} />}
+          {busy
+            ? busyStage === "creating"
+              ? `กำลังสร้าง ${importProgress.completed}/${importProgress.total}`
+              : "กำลังอ่านไฟล์..."
+            : `ยืนยันนำเข้า ${selected.length} คน`}
         </button>
       </div>
     </Modal>

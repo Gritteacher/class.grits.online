@@ -367,25 +367,43 @@ export function App() {
   async function createImportedAccounts(
     room: string,
     rows: ImportRow[],
+    onProgress?: (progress: { completed: number; total: number; failed: number }) => void,
   ): Promise<State> {
     if (!identity || identity.profile.role !== "teacher")
       throw new Error("กรุณาเข้าสู่ระบบครูก่อน");
     const classroomId = await getTeacherClassroomId(identity.profile.id, room);
     const failures: string[] = [];
-    for (const row of rows) {
-      try {
-        await createStudentAccount({
-          studentCode: row.input.code,
-          displayName: row.input.name,
-          classroomId,
-          studentNumber: row.input.number,
-        });
-      } catch (error) {
-        failures.push(
-          `${row.row}: ${error instanceof Error ? error.message : "สร้างบัญชีไม่สำเร็จ"}`,
-        );
+    let nextIndex = 0;
+    let completed = 0;
+    const worker = async () => {
+      while (true) {
+        const index = nextIndex++;
+        if (index >= rows.length) return;
+        const row = rows[index];
+        try {
+          await createStudentAccount({
+            studentCode: row.input.code,
+            displayName: row.input.name,
+            classroomId,
+            studentNumber: row.input.number,
+          });
+        } catch (error) {
+          failures.push(
+            `${row.row}: ${error instanceof Error ? error.message : "สร้างบัญชีไม่สำเร็จ"}`,
+          );
+        } finally {
+          completed += 1;
+          onProgress?.({
+            completed,
+            total: rows.length,
+            failed: failures.length,
+          });
+        }
       }
-    }
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(4, rows.length) }, () => worker()),
+    );
     const roster = await loadTeacherRoster(identity.profile.id);
     const nextState = applyTeacherRoster(state, roster);
     setState(nextState);
