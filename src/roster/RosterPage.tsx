@@ -57,6 +57,11 @@ export function RosterPage({
   onCreateAccounts?: (
     room: string,
     rows: ImportRow[],
+    onProgress?: (progress: {
+      completed: number;
+      total: number;
+      failed: number;
+    }) => void,
   ) => Promise<State>;
   onPersistStudent?: PersistStudent;
   onPersistStatus?: PersistStatus;

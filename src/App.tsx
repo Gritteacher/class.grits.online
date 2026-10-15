@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -106,6 +106,8 @@ import {
 
 type Page = "today" | "workspace" | "results" | "growth" | "roster" | "resources" | "reports";
 type Notice = { text: string; error?: boolean } | null;
+type ImportProgress = { completed: number; total: number; failed: number };
+type ImportJob = ImportProgress & { id: number; active: boolean; error?: boolean };
 export function App() {
   const [state, setState] = useState<State>(emptyState);
   const [identity, setIdentity] = useState<AuthIdentity | null>(null);
@@ -141,6 +143,8 @@ export function App() {
     feedback: string;
     revisions: Record<string, number>;
   } | null>(null);
+  const [importJob, setImportJob] = useState<ImportJob | null>(null);
+  const importJobId = useRef(0);
   const resetToken = new URLSearchParams(window.location.search).get("reset");
   const [overrideError, setOverrideError] = useState("");
   const student =
@@ -200,6 +204,15 @@ export function App() {
     const timer = setTimeout(() => setNotice(null), 6000);
     return () => clearTimeout(timer);
   }, [notice]);
+  useEffect(() => {
+    if (!importJob?.active) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [importJob?.active]);
   useEffect(() => {
     if (!identity || identity.profile.role !== "teacher") return;
     let mounted = true;
@@ -367,49 +380,79 @@ export function App() {
   async function createImportedAccounts(
     room: string,
     rows: ImportRow[],
-    onProgress?: (progress: { completed: number; total: number; failed: number }) => void,
+    onProgress?: (progress: ImportProgress) => void,
   ): Promise<State> {
     if (!identity || identity.profile.role !== "teacher")
       throw new Error("กรุณาเข้าสู่ระบบครูก่อน");
-    const classroomId = await getTeacherClassroomId(identity.profile.id, room);
+    const jobId = importJobId.current + 1;
+    importJobId.current = jobId;
     const failures: string[] = [];
     let nextIndex = 0;
     let completed = 0;
-    const worker = async () => {
-      while (true) {
-        const index = nextIndex++;
-        if (index >= rows.length) return;
-        const row = rows[index];
-        try {
-          await createStudentAccount({
-            studentCode: row.input.code,
-            displayName: row.input.name,
-            classroomId,
-            studentNumber: row.input.number,
-          });
-        } catch (error) {
-          failures.push(
-            `${row.row}: ${error instanceof Error ? error.message : "สร้างบัญชีไม่สำเร็จ"}`,
-          );
-        } finally {
-          completed += 1;
-          onProgress?.({
-            completed,
-            total: rows.length,
-            failed: failures.length,
-          });
-        }
-      }
+    let jobError = false;
+    const report = (progress: ImportProgress) => {
+      setImportJob({ id: jobId, active: true, ...progress });
+      onProgress?.(progress);
     };
-    await Promise.all(
-      Array.from({ length: Math.min(4, rows.length) }, () => worker()),
-    );
-    const roster = await loadTeacherRoster(identity.profile.id);
-    const nextState = applyTeacherRoster(state, roster);
-    setState(nextState);
-    if (failures.length)
-      throw new Error(`สร้างบัญชีสำเร็จ ${rows.length - failures.length} คน · ${failures.join(" · ")}`);
-    return nextState;
+    report({ completed: 0, total: rows.length, failed: 0 });
+    try {
+      const classroomId = await getTeacherClassroomId(identity.profile.id, room);
+      const worker = async () => {
+        while (true) {
+          const index = nextIndex++;
+          if (index >= rows.length) return;
+          const row = rows[index];
+          try {
+            await createStudentAccount({
+              studentCode: row.input.code,
+              displayName: row.input.name,
+              classroomId,
+              studentNumber: row.input.number,
+            });
+          } catch (error) {
+            failures.push(
+              `${row.row}: ${error instanceof Error ? error.message : "สร้างบัญชีไม่สำเร็จ"}`,
+            );
+          } finally {
+            completed += 1;
+            report({
+              completed,
+              total: rows.length,
+              failed: failures.length,
+            });
+          }
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(4, rows.length) }, () => worker()),
+      );
+      const roster = await loadTeacherRoster(identity.profile.id);
+      const nextState = applyTeacherRoster(state, roster);
+      setState(nextState);
+      if (failures.length)
+        throw new Error(`สร้างบัญชีสำเร็จ ${rows.length - failures.length} คน · ${failures.join(" · ")}`);
+      return nextState;
+    } catch (error) {
+      jobError = true;
+      throw error;
+    } finally {
+      const finished = {
+        completed,
+        total: rows.length,
+        failed: Math.max(failures.length, rows.length - completed),
+      };
+      setImportJob((current) =>
+        current?.id === jobId
+          ? { ...current, ...finished, active: false, error: jobError || finished.failed > 0 }
+          : current,
+      );
+      onProgress?.(finished);
+      window.setTimeout(() => {
+        setImportJob((current) =>
+          current?.id === jobId && !current.active ? null : current,
+        );
+      }, 2600);
+    }
   }
   async function persistStudentToSupabase(
     next: State,
@@ -695,7 +738,7 @@ export function App() {
     ] : []),
   ];
   return (
-    <div className="app-shell">
+    <div className={`app-shell${importJob ? " has-background-import" : ""}`}>
       <header className="site-header">
         <div className="header-inner">
           <button
@@ -742,8 +785,9 @@ export function App() {
             </button>
             <button
               className="icon-button logout-button"
-              title="ออกจากระบบ"
+              title={importJob?.active ? "กำลังนำเข้า ไม่สามารถออกจากระบบได้" : "ออกจากระบบ"}
               aria-label="ออกจากระบบ"
+              disabled={importJob?.active}
               onClick={() => void leaveAccount()}
             >
               <LogOut size={19} />
@@ -886,6 +930,30 @@ export function App() {
           <span>พื้นที่เล็ก ๆ ของการเรียนรู้ที่ยิ่งใหญ่</span>
         </footer>
       </main>
+      {importJob && (
+        <button
+          type="button"
+          className={`background-import-pill${importJob.active ? " is-active" : " is-complete"}${importJob.error ? " is-error" : ""}`}
+          title="เปิดหน้าห้องเรียนเพื่อดูรายชื่อนักเรียน"
+          onClick={() => navigate("roster")}
+          aria-live="polite"
+        >
+          {importJob.active ? (
+            <span className="loading-spinner" aria-hidden="true" />
+          ) : (
+            <CheckCircle2 size={16} aria-hidden="true" />
+          )}
+          <span>
+            {importJob.active
+              ? `กำลังนำเข้า ${importJob.completed}/${importJob.total}`
+              : importJob.error
+                ? importJob.failed
+                  ? `นำเข้าเสร็จ · ไม่สำเร็จ ${importJob.failed}`
+                  : "นำเข้าไม่สำเร็จ · ลองใหม่"
+                : `นำเข้าเสร็จแล้ว · ${importJob.total} คน`}
+          </span>
+        </button>
+      )}
       {gradeTarget && (
         <GradeEditor
           state={state}

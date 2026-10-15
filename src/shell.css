@@ -143,6 +143,44 @@ html:has(.app-shell) {
 .app-shell .toast {
   bottom: var(--dock-clearance);
 }
+.app-shell.has-background-import .toast {
+  bottom: calc(var(--dock-clearance) + 54px);
+}
+.app-shell .background-import-pill {
+  position: fixed;
+  right: max(18px, calc((100vw - 1600px) / 2 + 28px));
+  bottom: calc(var(--dock-clearance) + 8px);
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  max-width: min(260px, calc(100vw - 36px));
+  padding: 8px 13px;
+  border: 1px solid color-mix(in srgb, var(--teal) 32%, var(--border));
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--teal-dark);
+  box-shadow: 0 10px 28px #25494020;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.app-shell .background-import-pill:hover,
+.app-shell .background-import-pill:focus-visible {
+  background: var(--teal-soft);
+  transform: translateY(-2px);
+}
+.app-shell .background-import-pill.is-complete {
+  color: var(--teal-dark);
+}
+.app-shell .background-import-pill.is-error {
+  color: var(--coral-text);
+  border-color: color-mix(in srgb, var(--coral) 45%, var(--border));
+}
+.app-shell .background-import-pill span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .app-shell .grade-edit-button {
   display: inline-grid;
   place-items: center;
@@ -304,6 +342,17 @@ dialog [hidden] {
   }
   .app-shell .main-content {
     padding: 24px 16px 0;
+  }
+  .app-shell.has-background-import .toast {
+    bottom: calc(var(--dock-clearance) + 50px);
+  }
+  .app-shell .background-import-pill {
+    right: 18px;
+    bottom: calc(var(--dock-clearance) + 5px);
+    min-height: 34px;
+    max-width: calc(100vw - 36px);
+    padding: 7px 10px;
+    font-size: 11px;
   }
   .app-shell .preview-identity {
     padding-inline: 16px;

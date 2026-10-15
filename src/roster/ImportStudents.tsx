@@ -206,19 +206,16 @@ export function ImportStudents({
           </div>
         )}
         {busyStage === "creating" && (
-          <div className="import-progress-card" role="status" aria-live="polite">
-            <div className="import-progress-heading">
-              <span className="loading-spinner" aria-hidden="true" />
-              <strong>กำลังสร้างบัญชีนักเรียน</strong>
-              <span>{importProgress.completed} / {importProgress.total}</span>
+          <div className="import-background-hint" role="status" aria-live="polite">
+            <span className="loading-spinner" aria-hidden="true" />
+            <div>
+              <strong>กำลังนำเข้ารายชื่อในเบื้องหลัง</strong>
+              <span>
+                {importProgress.completed} / {importProgress.total} คน
+                {importProgress.failed ? ` · ไม่สำเร็จ ${importProgress.failed} คน` : ""}
+              </span>
             </div>
-            <div className="import-progress-track" aria-hidden="true">
-              <span style={{ width: `${importProgress.total ? (importProgress.completed / importProgress.total) * 100 : 0}%` }} />
-            </div>
-            <span className="muted">
-              ระบบกำลังดำเนินการ ไม่ต้องปิดหน้าต่างนี้
-              {importProgress.failed ? ` · ไม่สำเร็จ ${importProgress.failed} คน` : ""}
-            </span>
+            <small>ซ่อนหน้าต่างได้ งานจะทำต่อจนเสร็จ</small>
           </div>
         )}
         {sheet && (
@@ -439,7 +436,7 @@ export function ImportStudents({
       </div>
       <div className="modal-actions">
         <button className="button neutral" onClick={onClose}>
-          ยกเลิก
+          {busyStage === "creating" ? "ซ่อนหน้าต่าง" : "ยกเลิก"}
         </button>
         <button
           className="button teal"
