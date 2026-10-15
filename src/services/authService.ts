@@ -8,6 +8,7 @@ export type Profile = {
   role: UserRole;
   display_name: string;
   student_code: string | null;
+  recovery_email: string | null;
 };
 
 export type AuthIdentity = {
@@ -43,7 +44,7 @@ export async function signIn(
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, role, display_name, student_code")
+    .select("id, role, display_name, student_code, recovery_email")
     .eq("id", data.session.user.id)
     .maybeSingle<Profile>();
 
@@ -64,7 +65,7 @@ export async function getCurrentIdentity(
 ): Promise<AuthIdentity | null> {
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("id, role, display_name, student_code")
+    .select("id, role, display_name, student_code, recovery_email")
     .eq("id", session.user.id)
     .maybeSingle<Profile>();
   if (error || !profile) return null;
@@ -80,4 +81,19 @@ export async function updatePassword(password: string) {
   if (password.length < 6) throw new Error("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
   const { error } = await supabase.auth.updateUser({ password });
   if (error) throw new Error("เปลี่ยนรหัสผ่านไม่สำเร็จ กรุณาลองใหม่");
+}
+
+export async function saveRecoveryEmail(email: string) {
+  const value = email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    throw new Error("กรอกอีเมลให้ถูกต้อง");
+  }
+  const { data: session } = await supabase.auth.getSession();
+  if (!session.session) throw new Error("session หมดอายุ กรุณาเข้าสู่ระบบใหม่");
+  const { error } = await supabase
+    .from("profiles")
+    .update({ recovery_email: value })
+    .eq("id", session.session.user.id);
+  if (error) throw new Error("บันทึกอีเมลไม่สำเร็จ กรุณาลองใหม่");
+  return value;
 }

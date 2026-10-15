@@ -10,13 +10,15 @@ create table if not exists public.profiles (
   role text not null default 'student' check (role in ('teacher', 'student')),
   display_name text not null default '',
   student_code text unique,
+  recovery_email text,
   status text not null default 'active' check (status in ('active', 'archived')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 alter table public.profiles
-  add column if not exists status text not null default 'active';
+  add column if not exists status text not null default 'active',
+  add column if not exists recovery_email text;
 do $$ begin
   alter table public.profiles add constraint profiles_status_check check (status in ('active', 'archived'));
 exception when duplicate_object then null;

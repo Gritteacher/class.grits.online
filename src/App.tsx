@@ -72,6 +72,7 @@ import {
   type AuthIdentity,
 } from "./services/authService";
 import { PasswordDialog } from "./auth/PasswordDialog";
+import { RecoveryEmailDialog } from "./auth/RecoveryEmailDialog";
 import { supabase } from "./lib/supabase";
 import {
   applyTeacherRoster,
@@ -121,6 +122,7 @@ export function App() {
   const [dark, setDark] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [passwordDialog, setPasswordDialog] = useState(false);
+  const [recoveryEmailDismissedFor, setRecoveryEmailDismissedFor] = useState("");
   const [notice, setNotice] = useState<Notice>(null);
   const [newTask, setNewTask] = useState(false);
   const [editing, setEditing] = useState<Assignment | null>(null);
@@ -142,6 +144,12 @@ export function App() {
   const [overrideError, setOverrideError] = useState("");
   const student =
     state.students.find((s) => s.id === (role === "student" ? identity?.profile.id : studentId));
+  const needsRecoveryEmail = Boolean(
+    identity?.profile.role === "student" &&
+      student &&
+      !identity.profile.recovery_email &&
+      recoveryEmailDismissedFor !== identity.profile.id,
+  );
   useEffect(() => {
     let mounted = true;
     let authTimer: ReturnType<typeof setTimeout> | undefined;
@@ -1156,6 +1164,18 @@ export function App() {
         <PasswordDialog
           onClose={() => setPasswordDialog(false)}
           onSaved={() => setNotice({ text: "เปลี่ยนรหัสผ่านเรียบร้อยแล้ว" })}
+        />
+      )}
+      {needsRecoveryEmail && identity && (
+        <RecoveryEmailDialog
+          onClose={() => setRecoveryEmailDismissedFor(identity.profile.id)}
+          onSaved={(email) =>
+            setIdentity((current) =>
+              current
+                ? { ...current, profile: { ...current.profile, recovery_email: email } }
+                : current,
+            )
+          }
         />
       )}
     </div>
