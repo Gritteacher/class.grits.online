@@ -11,6 +11,50 @@ const json = (statusCode, body) => ({
   body: JSON.stringify(body),
 });
 
+const storageBucket = "classroom-files";
+
+async function listFilesRecursively(admin, path, output = []) {
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await admin.storage.from(storageBucket).list(path, {
+      limit: 1000,
+      offset,
+    });
+    if (error) throw new Error(`อ่านไฟล์งานนักเรียนไม่สำเร็จ: ${error.message}`);
+    if (!data?.length) break;
+    for (const item of data) {
+      const itemPath = `${path}/${item.name}`;
+      if (item.id) output.push(itemPath);
+      else await listFilesRecursively(admin, itemPath, output);
+    }
+    if (data.length < 1000) break;
+  }
+  return output;
+}
+
+async function removeStudentFiles(admin, studentId) {
+  const prefix = `submissions/${studentId}`;
+  const listedPaths = await listFilesRecursively(admin, prefix);
+  if (!listedPaths.length) return;
+
+  const { data: referencedRows, error: referenceError } = await admin
+    .from("submissions")
+    .select("file_path")
+    .in("file_path", listedPaths)
+    .neq("student_id", studentId);
+  if (referenceError) throw new Error(`ตรวจสอบไฟล์งานกลุ่มไม่สำเร็จ: ${referenceError.message}`);
+  const protectedPaths = new Set(
+    (referencedRows ?? [])
+      .map((row) => row.file_path)
+      .filter((path) => typeof path === "string"),
+  );
+  const removablePaths = listedPaths.filter((path) => !protectedPaths.has(path));
+  for (let index = 0; index < removablePaths.length; index += 100) {
+    const batch = removablePaths.slice(index, index + 100);
+    const { error: storageError } = await admin.storage.from(storageBucket).remove(batch);
+    if (storageError) throw new Error(`ลบไฟล์งานนักเรียนไม่สำเร็จ: ${storageError.message}`);
+  }
+}
+
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") return json(204, {});
   if (event.httpMethod !== "POST") return json(405, { error: "Method not allowed" });
@@ -41,6 +85,11 @@ export async function handler(event) {
   if (membershipError || !membership) return json(403, { error: "ครูไม่มีสิทธิ์ลบนักเรียนคนนี้" });
   const { data: student } = await admin.from("profiles").select("id, role").eq("id", studentId).maybeSingle();
   if (!student || student.role !== "student") return json(404, { error: "ไม่พบบัญชีนักเรียน" });
+  try {
+    await removeStudentFiles(admin, studentId);
+  } catch (error) {
+    return json(400, { error: error instanceof Error ? error.message : "ลบไฟล์งานนักเรียนไม่สำเร็จ" });
+  }
   const { error: deleteError } = await admin.auth.admin.deleteUser(studentId);
   if (deleteError && !deleteError.message?.toLowerCase().includes("not found")) {
     return json(400, { error: "ลบบัญชีนักเรียนไม่สำเร็จ" });
