@@ -19,4 +19,14 @@ test("production login form exposes only real account fields", async ({ page }) 
   await page.getByRole("button", { name: "เข้าสู่ระบบสำหรับครู" }).click();
   await expect(page.getByLabel("อีเมลครู", { exact: true })).toBeVisible();
   await expect(page.getByText("กลับหน้าสำหรับนักเรียน")).toBeVisible();
+  await page.getByRole("button", { name: "กลับหน้าสำหรับนักเรียน" }).click();
+  await page.getByRole("button", { name: "ลืมรหัสผ่าน?" }).click();
+  await expect(page.getByLabel("อีเมลที่ลงทะเบียนไว้", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "ส่งลิงก์ตั้งรหัสผ่าน" })).toBeVisible();
+});
+
+test("password reset link opens the reset screen", async ({ page }) => {
+  await page.goto("/?reset=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  await expect(page.getByRole("heading", { name: "ตั้งรหัสผ่านใหม่", exact: true })).toBeVisible();
+  await expect(page.getByLabel("ยืนยันรหัสผ่านใหม่", { exact: true })).toBeVisible();
 });

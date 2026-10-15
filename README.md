@@ -101,6 +101,7 @@ Still pending: academic year/term/course records, server-backed reward records, 
 - endpoint `/.netlify/functions/create-student-account` เตรียมไว้สำหรับสร้างบัญชีนักเรียน โดยตรวจ bearer token และ `profiles.role = 'teacher'` ฝั่ง server ก่อนเสมอ
 - endpoint `/.netlify/functions/line-account` ใช้ตรวจสอบ LIFF ID Token และเชื่อมบัญชี LINE กับบัญชีนักเรียน โดยใช้ `LINE_CHANNEL_ID` (ค่าเริ่มต้นของ LIFF นี้คือ `2012019762`)
 - ตั้งค่า `SUPABASE_SERVICE_ROLE_KEY` เฉพาะใน Netlify Functions เท่านั้น ห้ามใช้ใน `VITE_*` หรือ frontend
+- ตั้งค่า `RESEND_API_KEY` และ `RESEND_FROM_EMAIL` ใน Netlify เท่านั้น เพื่อเปิดอีเมลยืนยันการสมัครและอีเมลกู้รหัสผ่าน โดย `RESEND_FROM_EMAIL` ต้องเป็นอีเมลจากโดเมนที่ยืนยันกับ Resend แล้ว
 
 การนำเข้า XLS ยังตรวจและแสดงตัวอย่างใน browser ได้เหมือนเดิม เมื่อครูเข้าสู่ระบบจริง ระบบจะแสดงช่องรหัสผ่านเริ่มต้นและสร้างบัญชีจากแถวที่เลือกผ่าน Netlify Function แล้วโหลดข้อมูลกลับจาก Supabase อีกครั้ง
 

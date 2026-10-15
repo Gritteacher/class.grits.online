@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { signIn, type UserRole } from "../services/authService";
 import { claimStudentAccount, StudentSignupError } from "../services/studentAccountService";
+import { requestStudentPasswordReset } from "../services/passwordRecoveryService";
 import { LineAccountNotLinkedError } from "../services/lineAccountService";
 import { SchoolLogo } from "../components/SchoolLogo";
 import "./preview.css";
@@ -43,14 +44,22 @@ export function PreviewLogin({
   const [email, setEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetNotice, setResetNotice] = useState("");
   const isTeacher = role === "teacher";
   function submit(e: FormEvent) {
     e.preventDefault();
     setError("");
     setFieldErrors({});
+    setResetNotice("");
     void (async () => {
       setBusy(true);
       try {
+        if (!isTeacher && forgotMode) {
+          const message = await requestStudentPasswordReset(code, email);
+          setResetNotice(message);
+          return;
+        }
         if (role === "student" && studentSignup) {
           await claimStudentAccount({ studentCode: code, firstName, lastName, email, password });
         }
@@ -182,11 +191,25 @@ export function PreviewLogin({
                   setCode(e.target.value);
                   setError("");
                   setFieldErrors({});
+                  setResetNotice("");
                 }}
                 required
               />
               {fieldErrors.studentCode && <small className="preview-field-error">{fieldErrors.studentCode}</small>}
             </label>
+            {!isTeacher && forgotMode && (
+              <label>
+                อีเมลที่ลงทะเบียนไว้
+                <input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  placeholder="name@example.com"
+                  onChange={(e) => { setEmail(e.target.value); setError(""); setResetNotice(""); }}
+                  required
+                />
+              </label>
+            )}
             {role === "student" && studentSignup && (
               <>
                 <p className="preview-signup-hint" role="note">โปรดตรวจสอบชื่อและนามสกุลให้ถูกต้อง กรอกให้ตรงกับข้อมูลในระบบ และไม่ต้องใส่คำนำหน้า เช่น นาย นางสาว เด็กชาย หรือเด็กหญิง</p>
@@ -221,7 +244,7 @@ export function PreviewLogin({
                 </label>
               </>
             )}
-            <label>
+            {!forgotMode && <label>
               {studentSignup ? "ตั้งรหัสผ่าน" : "รหัสผ่าน"}
               <div className="preview-password-input">
                 <input
@@ -242,29 +265,35 @@ export function PreviewLogin({
                 </button>
               </div>
               {fieldErrors.password && <small className="preview-field-error">{fieldErrors.password}</small>}
-            </label>
+            </label>}
           </div>
           {error && (
             <p className="form-error" role="alert">
               {error}
             </p>
           )}
+          {resetNotice && <p className="preview-success" role="status">{resetNotice}</p>}
           <button className="button gold preview-enter" type="submit" disabled={busy}>
-            {busy ? "กำลังตรวจสอบ..." : studentSignup ? "สมัครใช้งานนักเรียน" : role === "teacher" ? "เข้าสู่ระบบครู" : "เข้าสู่ระบบนักเรียน"}
+            {busy ? "กำลังตรวจสอบ..." : forgotMode ? "ส่งลิงก์ตั้งรหัสผ่าน" : studentSignup ? "สมัครใช้งานนักเรียน" : role === "teacher" ? "เข้าสู่ระบบครู" : "เข้าสู่ระบบนักเรียน"}
             <ArrowRight size={18} />
           </button>
-          {!isTeacher && !studentSignup && (
+          {!isTeacher && !studentSignup && !forgotMode && (
             <div className="preview-auth-links">
-              <button type="button" className="preview-forgot-link" onClick={() => setError("ลืมรหัสผ่านใช่ไหม ให้ครูเปิดรายชื่อของคุณ แล้วเลือกแก้ไขเพื่อกำหนดรหัสผ่านใหม่")}>
+              <button type="button" className="preview-forgot-link" onClick={() => { setForgotMode(true); setError(""); setResetNotice(""); }}>
                 ลืมรหัสผ่าน?
               </button>
             </div>
+          )}
+          {!isTeacher && forgotMode && (
+            <button type="button" className="preview-forgot-link" onClick={() => { setForgotMode(false); setError(""); setResetNotice(""); }}>
+              กลับเข้าสู่ระบบ
+            </button>
           )}
         </form>
         <button
           type="button"
           className="preview-teacher-link"
-          onClick={() => { setRole(isTeacher ? "student" : "teacher"); setStudentSignup(false); setError(""); }}
+          onClick={() => { setRole(isTeacher ? "student" : "teacher"); setStudentSignup(false); setForgotMode(false); setError(""); setResetNotice(""); }}
         >
           {isTeacher ? "กลับหน้าสำหรับนักเรียน" : "เข้าสู่ระบบสำหรับครู"}
         </button>

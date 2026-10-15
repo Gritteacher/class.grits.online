@@ -67,6 +67,16 @@
   font-size: 11px;
   line-height: 1.5;
 }
+.preview-success {
+  margin: 14px 0 0;
+  padding: 11px 12px;
+  color: #236b4b;
+  border: 1px solid #9bd3b2;
+  border-radius: 10px;
+  background: #eaf8ef;
+  font-size: 12px;
+  line-height: 1.6;
+}
 .preview-password-input {
   position: relative;
   display: flex;

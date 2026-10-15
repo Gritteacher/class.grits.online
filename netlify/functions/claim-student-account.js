@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { escapeHtml, sendResendEmail } from "./_shared/resend.js";
 
 const json = (statusCode, body) => ({
   statusCode,
@@ -56,7 +57,7 @@ export async function handler(event) {
     .select("id, role, display_name, status, recovery_email, student_claimed_at")
     .eq("student_code", studentCode)
     .maybeSingle();
-  const genericError = "ข้อมูลนักเรียนไม่ตรงกับรายชื่อที่ครูเตรียมไว้ หรือบัญชีนี้สมัครใช้งานแล้ว";
+  const genericError = "ข้อมูลนักเรียนไม่ตรง หรือบัญชีนี้สมัครใช้งานแล้ว";
   if (profileError || !profile || profile.role !== "student" || profile.status !== "active") {
     return json(400, { field: "studentCode", error: "ไม่พบรหัสนักเรียนนี้ในรายชื่อที่ครูเตรียมไว้" });
   }
@@ -84,5 +85,11 @@ export async function handler(event) {
     .maybeSingle();
   if (updateError) return json(400, { error: "บันทึกข้อมูลสมัครใช้งานไม่สำเร็จ กรุณาลองใหม่" });
   if (!updateError && !claimed) return json(400, { error: genericError });
+  const emailResult = await sendResendEmail({
+    to: email,
+    subject: "ยืนยันการสมัครใช้งาน | ห้องเรียนสังคมครูไต๋",
+    html: `<div style="font-family:Arial,sans-serif;line-height:1.7;color:#173d38"><h2>สมัครใช้งานสำเร็จ</h2><p>ยินดีต้อนรับ ${escapeHtml(profile.display_name)}</p><p>บัญชีนักเรียนของคุณพร้อมใช้งานแล้ว สามารถเข้าสู่ระบบด้วยรหัสนักเรียนและรหัสผ่านที่ตั้งไว้</p><p style="color:#687b77;font-size:13px">หากไม่ได้เป็นผู้สมัคร ให้ติดต่อครูผู้ดูแลระบบ</p></div>`,
+  });
+  if (!emailResult.sent) console.error("Resend signup confirmation was not sent", emailResult.reason);
   return json(200, { studentCode, claimed: true });
 }

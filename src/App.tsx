@@ -73,6 +73,7 @@ import {
 } from "./services/authService";
 import { PasswordDialog } from "./auth/PasswordDialog";
 import { RecoveryEmailDialog } from "./auth/RecoveryEmailDialog";
+import { PasswordResetPage } from "./auth/PasswordResetPage";
 import { supabase } from "./lib/supabase";
 import {
   applyTeacherRoster,
@@ -140,6 +141,7 @@ export function App() {
     feedback: string;
     revisions: Record<string, number>;
   } | null>(null);
+  const resetToken = new URLSearchParams(window.location.search).get("reset");
   const [overrideError, setOverrideError] = useState("");
   const student =
     state.students.find((s) => s.id === (role === "student" ? identity?.profile.id : studentId));
@@ -617,6 +619,7 @@ export function App() {
       });
     }
   }
+  if (resetToken) return <PasswordResetPage token={resetToken} />;
   if (authLoading)
     return (
       <div className="preview-login auth-loading" role="status">
