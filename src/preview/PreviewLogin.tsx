@@ -4,7 +4,6 @@ import {
   GraduationCap,
   Moon,
   Sun,
-  Users,
 } from "lucide-react";
 import { signIn, type UserRole } from "../services/authService";
 import { claimStudentAccount } from "../services/studentAccountService";
@@ -40,6 +39,7 @@ export function PreviewLogin({
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const isTeacher = role === "teacher";
   function submit(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -112,34 +112,36 @@ export function PreviewLogin({
           ห้องเรียนสังคมครูไต๋
         </h1>
         <p className="preview-greeting">เริ่มการเรียนรู้ในแบบของคุณ</p>
-        <div
-          className="preview-role-tabs"
-          role="group"
-          aria-label="เลือกบทบาทจำลอง"
-        >
-          <button
-            aria-pressed={role === "teacher"}
-            onClick={() => {
-              setRole("teacher");
-              setStudentSignup(false);
-              setError("");
-            }}
-          >
-            <GraduationCap size={20} />
-            ครู
-          </button>
-          <button
-            aria-pressed={role === "student"}
-            onClick={() => {
-              setRole("student");
-              setError("");
-            }}
-          >
-            <Users size={20} />
-            นักเรียน
-          </button>
-        </div>
-        {role === "student" && lineAvailable && (
+        {isTeacher ? (
+          <p className="preview-teacher-context">
+            <GraduationCap size={16} /> เข้าสู่ระบบสำหรับครู
+          </p>
+        ) : (
+          <>
+            <p className="preview-access-intro">
+              ครั้งแรกที่ใช้งาน ให้ลงทะเบียนก่อน จากนั้นจึงเข้าสู่ระบบด้วยรหัสนักเรียน
+            </p>
+            <div className="preview-access-choice" role="group" aria-label="เลือกการใช้งาน">
+              <button
+                type="button"
+                className={studentSignup ? "is-selected" : ""}
+                onClick={() => { setStudentSignup(true); setError(""); }}
+              >
+                <strong>ลงทะเบียนครั้งแรก</strong>
+                <span>ยืนยันข้อมูลนักเรียนและตั้งรหัสผ่าน</span>
+              </button>
+              <button
+                type="button"
+                className={!studentSignup ? "is-selected" : ""}
+                onClick={() => { setStudentSignup(false); setError(""); }}
+              >
+                <strong>เข้าสู่ระบบ</strong>
+                <span>สำหรับนักเรียนที่ลงทะเบียนแล้ว</span>
+              </button>
+            </div>
+          </>
+        )}
+        {!isTeacher && !studentSignup && lineAvailable && (
           <section className="line-login-panel">
             <button
               className="button preview-line-button"
@@ -232,19 +234,21 @@ export function PreviewLogin({
             {busy ? "กำลังตรวจสอบ..." : studentSignup ? "สมัครใช้งานนักเรียน" : role === "teacher" ? "เข้าสู่ระบบครู" : "เข้าสู่ระบบนักเรียน"}
             <ArrowRight size={18} />
           </button>
-          {role === "student" && (
+          {!isTeacher && !studentSignup && (
             <div className="preview-auth-links">
-              <button type="button" className="preview-forgot-link" onClick={() => { setStudentSignup(!studentSignup); setError(""); }}>
-                {studentSignup ? "มีบัญชีแล้ว เข้าสู่ระบบ" : "สมัครใช้งานนักเรียนครั้งแรก"}
+              <button type="button" className="preview-forgot-link" onClick={() => setError("ลืมรหัสผ่านใช่ไหม ให้ครูเปิดรายชื่อของคุณ แล้วเลือกแก้ไขเพื่อกำหนดรหัสผ่านใหม่")}>
+                ลืมรหัสผ่าน?
               </button>
-              {!studentSignup && (
-                <button type="button" className="preview-forgot-link" onClick={() => setError("ลืมรหัสผ่านใช่ไหม ให้ครูเปิดรายชื่อของคุณ แล้วเลือกแก้ไขเพื่อกำหนดรหัสผ่านใหม่")}>
-                  ลืมรหัสผ่าน?
-                </button>
-              )}
             </div>
           )}
         </form>
+        <button
+          type="button"
+          className="preview-teacher-link"
+          onClick={() => { setRole(isTeacher ? "student" : "teacher"); setStudentSignup(false); setError(""); }}
+        >
+          {isTeacher ? "กลับหน้าสำหรับนักเรียน" : "เข้าสู่ระบบสำหรับครู"}
+        </button>
       </main>
     </div>
   );

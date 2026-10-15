@@ -115,7 +115,7 @@ export function App() {
   const [studentRetry, setStudentRetry] = useState(0);
   const [rosterError, setRosterError] = useState("");
   const [rosterRetry, setRosterRetry] = useState(0);
-  const [loginRole, setLoginRole] = useState<"teacher" | "student">("teacher");
+  const [loginRole, setLoginRole] = useState<"teacher" | "student">("student");
   const [page, setPage] = useState<Page>("today");
   const [activeId, setActiveId] = useState("");
   const [dark, setDark] = useState(false);
