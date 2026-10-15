@@ -13,6 +13,17 @@ const json = (statusCode, body) => ({
 
 const studentEmail = (code) => `${code.trim()}@students.class.grits.online`;
 
+async function findAuthUserByEmail(admin, email) {
+  for (let page = 1; page <= 10; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error || !data?.users?.length) return null;
+    const match = data.users.find((user) => user.email?.toLowerCase() === email.toLowerCase());
+    if (match) return match;
+    if (data.users.length < 1000) return null;
+  }
+  return null;
+}
+
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") return json(204, {});
   if (event.httpMethod !== "POST") return json(405, { error: "Method not allowed" });
@@ -107,15 +118,31 @@ export async function handler(event) {
     });
   }
 
+  const email = studentEmail(code);
+  let authUser;
   const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email: studentEmail(code),
+    email,
     password,
     email_confirm: true,
   });
-  if (createError || !created.user) return json(400, { error: "สร้างบัญชีนักเรียนไม่สำเร็จ" });
+  if (created?.user) {
+    authUser = created.user;
+  } else if (createError?.message?.toLowerCase().includes("already") || createError?.code === "email_exists") {
+    // A previous delete may have removed the profile but left the Auth user.
+    // Reuse that orphaned Auth account instead of forcing a new student code.
+    authUser = await findAuthUserByEmail(admin, email);
+    if (authUser) {
+      const { error: resetError } = await admin.auth.admin.updateUserById(authUser.id, {
+        password,
+        email_confirm: true,
+      });
+      if (resetError) return json(400, { error: "กู้คืนบัญชีนักเรียนเดิมไม่สำเร็จ" });
+    }
+  }
+  if (!authUser) return json(400, { error: "สร้างบัญชีนักเรียนไม่สำเร็จ" });
 
   const { error: profileError } = await admin.from("profiles").insert({
-    id: created.user.id,
+    id: authUser.id,
     role: "student",
     display_name: displayName,
     student_code: code,
@@ -124,12 +151,12 @@ export async function handler(event) {
     ? { error: profileError }
     : await admin.from("classroom_members").insert({
         classroom_id: classroomId,
-        student_id: created.user.id,
+        student_id: authUser.id,
         student_number: studentNumber,
       });
   if (profileError || memberError) {
-    await admin.auth.admin.deleteUser(created.user.id);
+    await admin.auth.admin.deleteUser(authUser.id);
     return json(400, { error: "บันทึกข้อมูลนักเรียนไม่สำเร็จ บัญชีถูกยกเลิกแล้ว" });
   }
-  return json(200, { id: created.user.id, studentCode: code, displayName });
+  return json(200, { id: authUser.id, studentCode: code, displayName });
 }

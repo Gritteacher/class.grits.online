@@ -42,6 +42,12 @@ export async function handler(event) {
   const { data: student } = await admin.from("profiles").select("id, role").eq("id", studentId).maybeSingle();
   if (!student || student.role !== "student") return json(404, { error: "ไม่พบบัญชีนักเรียน" });
   const { error: deleteError } = await admin.auth.admin.deleteUser(studentId);
-  if (deleteError) return json(400, { error: "ลบบัญชีนักเรียนไม่สำเร็จ" });
+  if (deleteError && !deleteError.message?.toLowerCase().includes("not found")) {
+    return json(400, { error: "ลบบัญชีนักเรียนไม่สำเร็จ" });
+  }
+  // Auth normally cascades to profiles, but clean it explicitly so a partial
+  // delete cannot block adding the same student code again.
+  const { error: profileDeleteError } = await admin.from("profiles").delete().eq("id", studentId);
+  if (profileDeleteError) return json(400, { error: "ลบบัญชีนักเรียนไม่ครบ กรุณาลองใหม่" });
   return json(200, { deleted: true, studentId });
 }
