@@ -1,5 +1,12 @@
 import { supabase } from "../lib/supabase";
 
+export class StudentSignupError extends Error {
+  constructor(public field: "studentCode" | "firstName" | "lastName" | "name" | "email" | "password", message: string) {
+    super(message);
+    this.name = "StudentSignupError";
+  }
+}
+
 export async function createStudentAccount(input: {
   studentCode: string;
   displayName: string;
@@ -82,6 +89,8 @@ export async function claimStudentAccount(input: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
-  const result = (await response.json().catch(() => ({}))) as { error?: string };
-  if (!response.ok) throw new Error(result.error ?? "สมัครใช้งานนักเรียนไม่สำเร็จ");
+  const result = (await response.json().catch(() => ({}))) as { field?: StudentSignupError["field"]; error?: string };
+  if (!response.ok) {
+    throw new StudentSignupError(result.field ?? "studentCode", result.error ?? "สมัครใช้งานนักเรียนไม่สำเร็จ");
+  }
 }

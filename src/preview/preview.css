@@ -50,6 +50,45 @@
   font-size: 13px;
   line-height: 1.7;
 }
+.preview-signup-hint {
+  margin: -2px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.preview-field-error {
+  display: block;
+  margin-top: 5px;
+  color: #b84b35;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.preview-password-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.preview-password-input input {
+  width: 100%;
+  padding-right: 48px;
+}
+.preview-password-input button {
+  position: absolute;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+.preview-password-input button:hover {
+  color: var(--teal-dark);
+  background: var(--surface-alt);
+}
 .preview-access-choice {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

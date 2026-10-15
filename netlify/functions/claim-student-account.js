@@ -40,13 +40,13 @@ export async function handler(event) {
   const lastName = String(input.lastName || "").trim();
   const email = String(input.email || "").trim().toLowerCase();
   const password = String(input.password || "");
-  if (!/^\d{1,20}$/.test(studentCode) || !firstName || !lastName || firstName.length > 80 || lastName.length > 80) {
-    return json(400, { error: "กรอกรหัส ชื่อ และนามสกุลให้ครบถ้วน" });
-  }
+  if (!/^\d{1,20}$/.test(studentCode)) return json(400, { field: "studentCode", error: "รหัสนักเรียนต้องเป็นตัวเลข 1–20 หลัก" });
+  if (!firstName || firstName.length > 80) return json(400, { field: "firstName", error: "กรอกชื่อให้ถูกต้อง และไม่ต้องใส่คำนำหน้า" });
+  if (!lastName || lastName.length > 80) return json(400, { field: "lastName", error: "กรอกนามสกุลให้ถูกต้อง และไม่ต้องใส่คำนำหน้า" });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 160) {
-    return json(400, { error: "กรอกอีเมลให้ถูกต้อง" });
+    return json(400, { field: "email", error: "กรอกอีเมลให้ถูกต้อง" });
   }
-  if (password.length < 6) return json(400, { error: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร" });
+  if (password.length < 6) return json(400, { field: "password", error: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร" });
 
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -58,11 +58,11 @@ export async function handler(event) {
     .maybeSingle();
   const genericError = "ข้อมูลนักเรียนไม่ตรงกับรายชื่อที่ครูเตรียมไว้ หรือบัญชีนี้สมัครใช้งานแล้ว";
   if (profileError || !profile || profile.role !== "student" || profile.status !== "active") {
-    return json(400, { error: genericError });
+    return json(400, { field: "studentCode", error: "ไม่พบรหัสนักเรียนนี้ในรายชื่อที่ครูเตรียมไว้" });
   }
-  if (profile.student_claimed_at || profile.recovery_email) return json(400, { error: genericError });
+  if (profile.student_claimed_at || profile.recovery_email) return json(400, { field: "studentCode", error: "บัญชีนี้สมัครใช้งานแล้ว ให้เข้าสู่ระบบแทน" });
   if (normalizeName(profile.display_name) !== normalizeName(`${firstName}${lastName}`)) {
-    return json(400, { error: genericError });
+    return json(400, { field: "name", error: "ชื่อหรือนามสกุลไม่ตรงกับรายชื่อ กรุณาตรวจตัวสะกดอีกครั้ง และไม่ต้องใส่คำนำหน้า" });
   }
 
   const { data: emailOwner } = await admin
@@ -70,9 +70,7 @@ export async function handler(event) {
     .select("id")
     .eq("recovery_email", email)
     .maybeSingle();
-  if (emailOwner && emailOwner.id !== profile.id) {
-    return json(409, { error: "อีเมลนี้ถูกใช้กับบัญชีนักเรียนอื่นแล้ว" });
-  }
+  if (emailOwner && emailOwner.id !== profile.id) return json(409, { field: "email", error: "อีเมลนี้ถูกใช้กับบัญชีนักเรียนอื่นแล้ว" });
   const { error: authError } = await admin.auth.admin.updateUserById(profile.id, { password });
   if (authError) return json(400, { error: "ตั้งค่าบัญชีนักเรียนไม่สำเร็จ กรุณาลองใหม่" });
 

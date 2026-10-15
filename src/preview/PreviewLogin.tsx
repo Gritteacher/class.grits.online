@@ -1,12 +1,14 @@
 import { useState, type FormEvent } from "react";
 import {
   ArrowRight,
+  Eye,
+  EyeOff,
   GraduationCap,
   Moon,
   Sun,
 } from "lucide-react";
 import { signIn, type UserRole } from "../services/authService";
-import { claimStudentAccount } from "../services/studentAccountService";
+import { claimStudentAccount, StudentSignupError } from "../services/studentAccountService";
 import { LineAccountNotLinkedError } from "../services/lineAccountService";
 import { SchoolLogo } from "../components/SchoolLogo";
 import "./preview.css";
@@ -39,10 +41,13 @@ export function PreviewLogin({
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const isTeacher = role === "teacher";
   function submit(e: FormEvent) {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
     void (async () => {
       setBusy(true);
       try {
@@ -52,6 +57,7 @@ export function PreviewLogin({
         await signIn(role as UserRole, code, password);
         await onAuthenticated();
       } catch (e) {
+        if (e instanceof StudentSignupError) setFieldErrors({ [e.field]: e.message });
         setError(e instanceof Error ? e.message : "เข้าสู่ระบบไม่สำเร็จ");
       } finally {
         setBusy(false);
@@ -175,27 +181,32 @@ export function PreviewLogin({
                 onChange={(e) => {
                   setCode(e.target.value);
                   setError("");
+                  setFieldErrors({});
                 }}
                 required
               />
+              {fieldErrors.studentCode && <small className="preview-field-error">{fieldErrors.studentCode}</small>}
             </label>
             {role === "student" && studentSignup && (
               <>
+                <p className="preview-signup-hint">กรอกชื่อและนามสกุลให้ตรงกับรายชื่อที่ครูเตรียมไว้ ไม่ต้องใส่คำนำหน้า เช่น นาย นางสาว เด็กชาย หรือเด็กหญิง</p>
                 <label>
                   ชื่อ
                   <input
                     value={firstName}
-                    onChange={(e) => { setFirstName(e.target.value); setError(""); }}
+                    onChange={(e) => { setFirstName(e.target.value); setError(""); setFieldErrors({}); }}
                     required
                   />
+                  {(fieldErrors.firstName || fieldErrors.name) && <small className="preview-field-error">{fieldErrors.firstName || fieldErrors.name}</small>}
                 </label>
                 <label>
                   นามสกุล
                   <input
                     value={lastName}
-                    onChange={(e) => { setLastName(e.target.value); setError(""); }}
+                    onChange={(e) => { setLastName(e.target.value); setError(""); setFieldErrors({}); }}
                     required
                   />
+                  {fieldErrors.lastName && <small className="preview-field-error">{fieldErrors.lastName}</small>}
                 </label>
                 <label>
                   อีเมลสำหรับกู้รหัสผ่าน
@@ -203,16 +214,18 @@ export function PreviewLogin({
                     type="email"
                     autoComplete="email"
                     value={email}
-                    onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                    onChange={(e) => { setEmail(e.target.value); setError(""); setFieldErrors({}); }}
                     required
                   />
+                  {fieldErrors.email && <small className="preview-field-error">{fieldErrors.email}</small>}
                 </label>
               </>
             )}
             <label>
               {studentSignup ? "ตั้งรหัสผ่าน" : "รหัสผ่าน"}
-              <input
-                type="password"
+              <div className="preview-password-input">
+                <input
+                type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 minLength={6}
                 value={password}
@@ -220,9 +233,15 @@ export function PreviewLogin({
                 onChange={(e) => {
                   setPassword(e.target.value);
                   setError("");
+                  setFieldErrors({});
                 }}
                 required
-              />
+                />
+                <button type="button" aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"} onClick={() => setShowPassword(!showPassword)}>
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {fieldErrors.password && <small className="preview-field-error">{fieldErrors.password}</small>}
             </label>
           </div>
           {error && (
