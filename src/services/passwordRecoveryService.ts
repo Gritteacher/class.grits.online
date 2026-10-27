@@ -1,5 +1,5 @@
 export async function requestStudentPasswordReset(studentCode: string, email: string) {
-  const response = await fetch("/.netlify/functions/request-student-password-reset", {
+  const response = await fetch("/api/request-student-password-reset", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ studentCode, email }),
@@ -10,7 +10,7 @@ export async function requestStudentPasswordReset(studentCode: string, email: st
 }
 
 export async function completeStudentPasswordReset(token: string, password: string) {
-  const response = await fetch("/.netlify/functions/complete-student-password-reset", {
+  const response = await fetch("/api/complete-student-password-reset", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token, password }),

@@ -1,14 +1,5 @@
+# Retained only for the old Netlify project's rollback/static fallback.
+# Production API handlers and the cleanup schedule now live on Cloudflare.
 [build]
   command = "npm run build"
   publish = "dist"
-
-[functions]
-  directory = "netlify/functions"
-
-[functions."cleanup-submission-files"]
-  schedule = "0 19 * * *"
-
-[[headers]]
-  for = "/.netlify/functions/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "https://class.grits.online"

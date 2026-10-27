@@ -6,7 +6,7 @@ const json = (statusCode, body) => ({
   statusCode,
   headers: {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "https://class.grits.online",
+    "Access-Control-Allow-Origin": "https://class.gritspace.cc",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   },
@@ -45,7 +45,7 @@ export async function handler(event) {
     expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
   });
   if (error) return json(200, generic);
-  const resetUrl = `https://class.grits.online/?reset=${rawToken}`;
+  const resetUrl = `https://class.gritspace.cc/?reset=${rawToken}`;
   const result = await sendResendEmail({
     to: profile.recovery_email,
     subject: "ตั้งรหัสผ่านใหม่ | ห้องเรียนสังคมครูไต๋",

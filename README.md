@@ -1,6 +1,6 @@
 # ห้องเรียนสังคมครูไต๋
 
-Production classroom application using Vite, React, TypeScript, Supabase and Netlify Functions. Authentication, classroom data, assignments, submissions, scores and resources are loaded from the configured Supabase project. There is no local demo login or mock-data mode in the production UI.
+Production classroom application using Vite, React, TypeScript, Supabase and Cloudflare Workers. Authentication, classroom data, assignments, submissions, scores and resources are loaded from the configured Supabase project. There is no local demo login or mock-data mode in the production UI.
 
 ## Run
 
@@ -9,7 +9,7 @@ npm ci
 npm run dev -- --port 4317 --strictPort
 ```
 
-Open http://127.0.0.1:4317/ for local development. Netlify builds with Node.js 22 in CI.
+Open http://127.0.0.1:4317/ for local development. Cloudflare Workers builds with Node.js 22 in CI.
 
 ## Verify
 
@@ -89,7 +89,7 @@ Still pending: academic year/term/course records, server-backed reward records, 
 1. สร้างผู้ใช้ครูใน Supabase Dashboard ที่ `Authentication > Users > Add user`
 2. คัดลอก UUID ของผู้ใช้ครู
 3. เปิด `supabase/bootstrap-teacher.sql` แทนค่า `PUT-AUTH-USER-UUID-HERE` แล้วรันใน SQL Editor
-4. ตั้งค่าใน `.env.local` หรือ Netlify โดยใช้เฉพาะ `VITE_SUPABASE_URL` และ `VITE_SUPABASE_PUBLISHABLE_KEY`
+4. ตั้งค่าใน `.env.local` หรือ Cloudflare Workers โดยใช้เฉพาะ `VITE_SUPABASE_URL` และ `VITE_SUPABASE_PUBLISHABLE_KEY`
 5. เปิดเว็บแล้วเลือก `ครู` และเข้าสู่ระบบด้วยอีเมล/รหัสผ่านที่สร้างไว้
 
 บัญชีนักเรียนใน Phase 2 ใช้รูปแบบอีเมลภายในจากรหัสนักเรียน แต่การสร้างบัญชีจำนวนมากจะทำใน Phase 3 ผ่านหน้าจัดการรายชื่อของครู
@@ -98,11 +98,10 @@ Still pending: academic year/term/course records, server-backed reward records, 
 
 - หน้า `ห้องเรียน` จะโหลดห้องและสมาชิกจาก Supabase เมื่อครูเข้าสู่ระบบจริง
 - การเพิ่มห้องใหม่จะบันทึกเข้า `public.classrooms` ผ่าน client ที่มี RLS
-- endpoint `/.netlify/functions/create-student-account` เตรียมไว้สำหรับสร้างบัญชีนักเรียน โดยตรวจ bearer token และ `profiles.role = 'teacher'` ฝั่ง server ก่อนเสมอ
-- endpoint `/.netlify/functions/line-account` ใช้ตรวจสอบ LIFF ID Token และเชื่อมบัญชี LINE กับบัญชีนักเรียน โดยใช้ `LINE_CHANNEL_ID` (ค่าเริ่มต้นของ LIFF นี้คือ `2012019762`)
-- ตั้งค่า `SUPABASE_SERVICE_ROLE_KEY` เฉพาะใน Netlify Functions เท่านั้น ห้ามใช้ใน `VITE_*` หรือ frontend
-- ตั้งค่า `RESEND_API_KEY` และ `RESEND_FROM_EMAIL` ใน Netlify เท่านั้น เพื่อเปิดอีเมลยืนยันการสมัครและอีเมลกู้รหัสผ่าน โดย `RESEND_FROM_EMAIL` ต้องเป็นอีเมลจากโดเมนที่ยืนยันกับ Resend แล้ว
+- endpoint `/api/create-student-account` เตรียมไว้สำหรับสร้างบัญชีนักเรียน โดยตรวจ bearer token และ `profiles.role = 'teacher'` ฝั่ง server ก่อนเสมอ
+- ตั้งค่า `SUPABASE_SERVICE_ROLE_KEY` เฉพาะใน Cloudflare Workers เท่านั้น ห้ามใช้ใน `VITE_*` หรือ frontend
+- ตั้งค่า `RESEND_API_KEY` และ `RESEND_FROM_EMAIL` ใน Cloudflare Workers เท่านั้น เพื่อเปิดอีเมลยืนยันการสมัครและอีเมลกู้รหัสผ่าน โดย `RESEND_FROM_EMAIL` ต้องเป็นอีเมลจากโดเมนที่ยืนยันกับ Resend แล้ว
 
-การนำเข้า XLS ยังตรวจและแสดงตัวอย่างใน browser ได้เหมือนเดิม เมื่อครูเข้าสู่ระบบจริง ระบบจะแสดงช่องรหัสผ่านเริ่มต้นและสร้างบัญชีจากแถวที่เลือกผ่าน Netlify Function แล้วโหลดข้อมูลกลับจาก Supabase อีกครั้ง
+การนำเข้า XLS ยังตรวจและแสดงตัวอย่างใน browser ได้เหมือนเดิม เมื่อครูเข้าสู่ระบบจริง ระบบจะแสดงช่องรหัสผ่านเริ่มต้นและสร้างบัญชีจากแถวที่เลือกผ่าน Cloudflare Worker แล้วโหลดข้อมูลกลับจาก Supabase อีกครั้ง
 
 ห้ามนำ `SUPABASE_SERVICE_ROLE_KEY` หรือ secret key ใด ๆ ใส่ใน frontend, `.env.example` หรือ commit ลง repository

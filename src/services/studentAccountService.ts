@@ -30,7 +30,7 @@ export async function createStudentAccount(input: {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("กรุณาเข้าสู่ระบบครูก่อน");
-  const response = await fetch("/.netlify/functions/create-student-account", {
+  const response = await fetch("/api/create-student-account", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -55,7 +55,7 @@ export async function resetStudentPassword(studentId: string, password: string) 
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("session หมดอายุ กรุณาเข้าสู่ระบบใหม่");
-  const response = await fetch("/.netlify/functions/reset-student-password", {
+  const response = await fetch("/api/reset-student-password", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ studentId, password }),
@@ -68,7 +68,7 @@ export async function deleteStudentAccount(studentId: string) {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("session หมดอายุ กรุณาเข้าสู่ระบบใหม่");
-  const response = await fetch("/.netlify/functions/delete-student-account", {
+  const response = await fetch("/api/delete-student-account", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ studentId }),
@@ -84,7 +84,7 @@ export async function claimStudentAccount(input: {
   email: string;
   password: string;
 }) {
-  const response = await fetch("/.netlify/functions/claim-student-account", {
+  const response = await fetch("/api/claim-student-account", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
