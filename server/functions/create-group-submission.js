@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-const json = (statusCode, body) => ({ statusCode, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "https://class.grits.online", "Access-Control-Allow-Headers": "Authorization, Content-Type", "Access-Control-Allow-Methods": "POST, OPTIONS" }, body: JSON.stringify(body) });
+const json = (statusCode, body) => ({ statusCode, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "https://class.gritspace.cc", "Access-Control-Allow-Headers": "Authorization, Content-Type", "Access-Control-Allow-Methods": "POST, OPTIONS" }, body: JSON.stringify(body) });
 
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") return json(204, {});

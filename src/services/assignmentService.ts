@@ -116,7 +116,7 @@ export async function submitGroupWorkToSupabase(studentId: string, assignment: A
     const { error } = await supabase.storage.from("classroom-files").upload(filePath, blob, { contentType: submission.file.type, upsert: false });
     if (error) throw new Error("อัปโหลดไฟล์ส่งงานไม่สำเร็จ กรุณาลองใหม่");
   }
-  const response = await fetch("/.netlify/functions/create-group-submission", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ assignmentId: assignment.id, memberIds: submission.groupMemberIds, groupId: submission.groupId, response: submission.response, link: submission.link, filePath, fileName: submission.file?.name, fileType: submission.file?.type, submittedAt: submission.submittedAt }) });
+  const response = await fetch("/api/create-group-submission", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ assignmentId: assignment.id, memberIds: submission.groupMemberIds, groupId: submission.groupId, response: submission.response, link: submission.link, filePath, fileName: submission.file?.name, fileType: submission.file?.type, submittedAt: submission.submittedAt }) });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (filePath) await supabase.storage.from("classroom-files").remove([filePath]);

@@ -39,7 +39,6 @@ import {
 import { Modal, Status } from "./ui";
 import { FilePreview } from "./components/FilePreview";
 import { SchoolLogo } from "./components/SchoolLogo";
-import { isLineAuthenticated, isLineEntry } from "./lib/lineEntry";
 import { Results, TeacherHome, Workspace } from "./Teacher";
 import { StudentHome } from "./Student";
 import { GrowthPage } from "./growth/GrowthPage";
@@ -95,7 +94,6 @@ import {
 } from "./services/assignmentService";
 import { saveGradeToSupabase, saveReviewToSupabase } from "./services/scoreService";
 import { loadResources } from "./services/resourceService";
-import { linkCurrentStudentToLine, loginWithLine } from "./services/lineAccountService";
 import { loadGrowth, saveGrowth } from "./services/growthService";
 import { ResourcesPage } from "./resources/ResourcesPage";
 import { ReportsPage } from "./reports/ReportsPage";
@@ -697,9 +695,6 @@ export function App() {
         onTheme={() => setDark(!dark)}
         initialRole={loginRole}
         onAuthenticated={refreshIdentity}
-        lineAvailable={isLineEntry() && isLineAuthenticated()}
-        onLineLogin={loginWithLine}
-        onLineLink={linkCurrentStudentToLine}
       />
     );
   if (role === "student" && !student)

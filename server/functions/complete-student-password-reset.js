@@ -5,7 +5,7 @@ const json = (statusCode, body) => ({
   statusCode,
   headers: {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "https://class.grits.online",
+    "Access-Control-Allow-Origin": "https://class.gritspace.cc",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   },
