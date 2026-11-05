@@ -526,11 +526,15 @@ export function App() {
         ? ["title", "description", "category", "rawMax", "finalMax", "due", "opensAt", "closesAt", "submissionRequired", "submissionMode", "groupSize"]
             .some((field) => before[field as keyof Assignment] !== representative[field as keyof Assignment])
         : false;
-      if (!changed && !fieldsChanged) continue;
+      const nextRooms = [...new Set(group.flatMap((assignment) => assignment.rooms))];
+      const previousGroup = previous.assignments.filter((assignment) => assignmentGroupId(assignment) === assignmentGroupId(representative));
+      const previousRooms = new Set(previousGroup.flatMap((assignment) => assignment.rooms));
+      const roomsChanged = nextRooms.length !== previousRooms.size || nextRooms.some((room) => !previousRooms.has(room));
+      if (!changed && !fieldsChanged && !roomsChanged) continue;
       await saveAssignmentToSupabase(
         identity.profile.id,
         representative,
-        [...new Set(group.flatMap((assignment) => assignment.rooms))],
+        nextRooms,
         previousIds.has(representative.id) ? representative.id : undefined,
       );
     }
@@ -1304,7 +1308,9 @@ function NewAssignment({
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState("");
   const siblings = initial ? siblingAssignments(state, initial) : [];
-  const editableRooms = initial ? [...new Set(siblings.flatMap((assignment) => assignment.rooms))] : rooms;
+  const assignedRooms = [...new Set(siblings.flatMap((assignment) => assignment.rooms))];
+  const editableRooms = [...new Set([...rooms, ...assignedRooms])];
+  const addedRooms = initial ? targets.filter((room) => !assignedRooms.includes(room)) : [];
   const [revisions] = useState(() =>
     initial
       ? Object.fromEntries(siblings.map((a) => [a.id, a.revision ?? 0]))
@@ -1432,8 +1438,8 @@ function NewAssignment({
                         ? siblings.find((assignment) => assignment.rooms.includes(r))?.rooms ?? [r]
                         : [r];
                       setTargets((current) => e.target.checked
-                        ? [...new Set([...current, ...linkedRooms])]
-                        : current.filter((room) => !linkedRooms.includes(room)));
+                        ? [...new Set([...current, ...linkedRooms, ...(initial && !assignedRooms.includes(r) ? initial.rooms : [])])]
+                        : current.filter((room) => !linkedRooms.includes(room) && !(initial && linkedRooms.some((room) => initial.rooms.includes(room)) && addedRooms.includes(room))));
                     }}
                   />
                   {r}
@@ -1449,10 +1455,11 @@ function NewAssignment({
               aria-label="ห้องที่ได้รับผลกระทบ"
             >
               <h3>
-                เปลี่ยน {targets.length} ห้อง · คงเดิม{" "}
-                {editableRooms.length - targets.length} ห้อง
+                เปลี่ยน {targets.length - addedRooms.length} ห้อง{addedRooms.length > 0 ? ` · เพิ่ม ${addedRooms.length} ห้อง` : ""} · คงเดิม{" "}
+                {assignedRooms.length - (targets.length - addedRooms.length)} ห้อง
               </h3>
               <ul>
+                {addedRooms.map((room) => <li key={`added:${room}`}><strong>{room}</strong><span>เพิ่มห้องที่ได้รับงาน</span></li>)}
                 {selectedAssignments.flatMap((a) => a.rooms.map((room) => (
                   <li key={`${a.id}:${room}`}>
                     <strong>{room}</strong>

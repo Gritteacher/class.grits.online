@@ -25,6 +25,11 @@ assert.equal(saved.assignments[0].id, 'work1');
 assert.equal(saved.assignments[0].title, 'แก้ไขแล้ว');
 assert.equal(saved.assignments[1], unrelated);
 assert.deepEqual(saved.grades, state.grades);
+const expanded = saveAssignmentGroup(state, { ...shared, rooms: [...shared.rooms, 'ม.6/4'] }, false, { work1: 0 });
+assert.deepEqual(expanded.assignments[0].rooms, [...shared.rooms, 'ม.6/4']);
+assert.equal(expanded.assignments[0].id, shared.id);
+assert.deepEqual(expanded.grades, state.grades);
+assert.equal(expanded.assignments[1], unrelated);
 assert.throws(() => saveAssignmentGroup(state, { ...shared, rooms: ['ม.6/2'], title: 'แก้ไขแล้ว' }, false, { work1: 0 }), /เลือกให้ครบ/);
 assert.throws(() => saveAssignmentGroup(state, { ...shared, rawMax: 5 }, true, { work1: 0 }), /ต่ำกว่าคะแนน/);
 const split = { ...state, assignments: [

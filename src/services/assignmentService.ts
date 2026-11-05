@@ -25,6 +25,16 @@ export async function saveAssignmentToSupabase(
   if (matchedClassrooms.length !== requestedRooms.size)
     throw new Error("ไม่พบห้องเรียนจริงที่เลือกครบทุกห้อง");
   const classroomIds = matchedClassrooms.map((room) => room.id);
+  let existingClassroomIds: string[] = [];
+  if (existingId) {
+    const { data: links, error } = await supabase.from("assignment_classrooms")
+      .select("classroom_id").eq("assignment_id", existingId);
+    if (error) throw new Error("ตรวจสอบห้องเดิมของงานไม่สำเร็จ");
+    existingClassroomIds = (links ?? []).map((link) => link.classroom_id as string);
+    if (existingClassroomIds.some((id) => !classroomIds.includes(id))) {
+      throw new Error("ต้องคงห้องเดิมที่ได้รับงานไว้ เพื่อรักษางานส่งและคะแนน");
+    }
+  }
   const payload = {
     title: assignment.title.trim(),
     description: assignment.description.trim(),
@@ -44,15 +54,13 @@ export async function saveAssignmentToSupabase(
     ? await supabase.from("assignments").update(payload).eq("id", existing).eq("teacher_id", teacherId).select("id").maybeSingle<{ id: string }>()
     : await supabase.from("assignments").insert(payload).select("id").single<{ id: string }>();
   if (assignmentError || !saved) throw new Error("บันทึกงานไม่สำเร็จ กรุณาลองใหม่");
-  const { error: unlinkError } = await supabase
-    .from("assignment_classrooms")
-    .delete()
-    .eq("assignment_id", saved.id);
-  if (unlinkError) throw new Error("อัปเดตห้องของงานไม่สำเร็จ กรุณาลองใหม่");
-  const { error: linkError } = await supabase.from("assignment_classrooms").insert(
-    classroomIds.map((classroomId) => ({ assignment_id: saved.id, classroom_id: classroomId })),
-  );
-  if (linkError) throw new Error("ผูกงานกับห้องเรียนไม่สำเร็จ");
+  const addedIds = classroomIds.filter((id) => !existingClassroomIds.includes(id));
+  if (addedIds.length) {
+    const { error: linkError } = await supabase.from("assignment_classrooms").insert(
+      addedIds.map((classroomId) => ({ assignment_id: saved.id, classroom_id: classroomId })),
+    );
+    if (linkError) throw new Error("ผูกงานกับห้องเรียนไม่สำเร็จ");
+  }
   return saved.id;
 }
 

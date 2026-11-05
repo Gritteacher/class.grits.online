@@ -155,7 +155,7 @@ export function saveAssignment(
   const changedScale = old.rawMax !== a.rawMax || old.finalMax !== a.finalMax;
   if (changedScale && grades.length > 0 && !confirmed)
     throw new Error("ยืนยันผลกระทบต่อคะแนนก่อนบันทึก");
-  if (old.groupId && (a.rooms.length !== old.rooms.length || a.rooms.some((room) => !old.rooms.includes(room))))
+  if (old.groupId && old.rooms.some((room) => !a.rooms.includes(room)))
     throw new Error(
       "เปลี่ยนห้องของงานเดิมไม่ได้ กรุณาเลือกห้องที่จะปรับในกลุ่มงาน",
     );
@@ -199,9 +199,14 @@ export function saveAssignmentGroup(
   const targets = [...new Set(draft.rooms)];
   if (
     !targets.length ||
-    targets.some((room) => !siblings.some((a) => a.rooms.includes(room)))
+    targets.some((room) => !state.rooms.includes(room))
   )
-    throw new Error("เลือกห้องที่ได้รับงานนี้อย่างน้อย 1 ห้อง");
+    throw new Error("เลือกห้องเรียนที่มีอยู่อย่างน้อย 1 ห้อง");
+  const assignedRooms = new Set(siblings.flatMap((assignment) => assignment.rooms));
+  const addedRooms = targets.filter((room) => !assignedRooms.has(room));
+  if (addedRooms.length && source.rooms.some((room) => !targets.includes(room))) {
+    throw new Error("เมื่อเพิ่มห้อง ต้องเลือกห้องเดิมของงานที่ใช้รายละเอียดร่วมกันด้วย");
+  }
   const selected = siblings.filter((a) => a.rooms.some((room) => targets.includes(room)));
   if (selected.some((assignment) => assignment.rooms.some((room) => !targets.includes(room)))) {
     throw new Error("ห้องที่ผูกกับงานเดียวกันใช้รายละเอียดร่วมกัน กรุณาเลือกให้ครบทุกห้องของงานนั้น");
@@ -215,10 +220,11 @@ export function saveAssignmentGroup(
     throw new Error("งานเปลี่ยนระหว่างแก้ไข กรุณาปิดแล้วเปิดใหม่");
   // Build the entire result first. The caller persists only if every room validates.
   const patch = assignmentPatch(source, draft);
-  if (!Object.keys(patch).length) return state;
+  if (!Object.keys(patch).length && !addedRooms.length) return state;
   return selected.reduce((next, a) => {
     const updated = { ...a, ...patch };
-    return Object.keys(assignmentPatch(a, updated)).length
+    if (a.id === source.id && addedRooms.length) updated.rooms = [...a.rooms, ...addedRooms];
+    return Object.keys(assignmentPatch(a, updated)).length || updated.rooms.length !== a.rooms.length
       ? saveAssignment(next, updated, confirmed)
       : next;
   }, state);

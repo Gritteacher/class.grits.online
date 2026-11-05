@@ -11,7 +11,7 @@ try {
     server.on('exit', (code) => reject(Error(`Vite exited ${code}`)));
   });
   browser = await chromium.launch({ channel: 'chrome' });
-  for (const width of [1440, 390]) {
+  for (const width of [1440, 390]) for (const initialRoomCount of [2, 8]) {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     const id = '00000000-0000-4000-8000-000000000001';
     const expires = Math.floor(Date.now() / 1000) + 3600;
@@ -23,7 +23,7 @@ try {
     const classrooms = Array.from({ length: 8 }, (_, index) => ({ id: `room${index + 1}`, name: `ม.6/${index + 1}`, room: String(index + 1), subject: 'สังคมศึกษา', teacher_id: id, level: 'ม.6', academic_year: '2569' }));
     let assignment = { id: 'work1', title: '3', description: 'ใบงานหน้าที่ 3 เขียนด้วยลายมือเท่านั้น', category: 'ใบงาน', raw_max: 10, final_max: 10,
       due_at: '2026-12-01T16:59:00Z', closes_at: '2026-12-01T16:59:00Z', opens_at: null, submission_required: true, submission_mode: 'individual', group_size: 1 };
-    let links = classrooms.map((room) => ({ assignment_id: 'work1', classroom_id: room.id }));
+    let links = classrooms.slice(0, initialRoomCount).map((room) => ({ assignment_id: 'work1', classroom_id: room.id }));
     let writes = 0;
     await page.route('https://example.supabase.co/**', async (route) => {
       const req = route.request(); const url = new URL(req.url()); let body = [];
@@ -34,8 +34,8 @@ try {
         else body = [assignment];
       }
       if (url.pathname.endsWith('/assignment_classrooms')) {
-        if (req.method() === 'DELETE') links = [];
-        if (req.method() === 'POST') links = req.postDataJSON();
+        assert.notEqual(req.method(), 'DELETE', 'Existing room links must never be removed');
+        if (req.method() === 'POST') links.push(...req.postDataJSON());
         body = links;
       }
       await route.fulfill({ json: body });
@@ -46,12 +46,12 @@ try {
     const dialog = page.getByRole('dialog');
     const checkboxes = dialog.locator('.room-checkboxes input');
     await expect(checkboxes).toHaveCount(8);
-    for (const box of await checkboxes.all()) await expect(box).toBeChecked();
-    await expect(dialog.getByRole('region', { name: 'ห้องที่ได้รับผลกระทบ' })).toContainText('เปลี่ยน 8 ห้อง · คงเดิม 0 ห้อง');
+    for (let index = 0; index < 8; index++) await expect(checkboxes.nth(index)).toBeChecked({ checked: index < initialRoomCount });
+    await expect(dialog.getByRole('region', { name: 'ห้องที่ได้รับผลกระทบ' })).toContainText(`เปลี่ยน ${initialRoomCount} ห้อง · คงเดิม 0 ห้อง`);
     await checkboxes.nth(1).uncheck();
     for (const box of await checkboxes.all()) await expect(box).not.toBeChecked();
     await checkboxes.nth(7).check();
-    await dialog.getByLabel('ชื่องาน', { exact: true }).fill('3 แก้ไขแล้ว');
+    if (initialRoomCount === 8) await dialog.getByLabel('ชื่องาน', { exact: true }).fill('3 แก้ไขแล้ว');
     await page.screenshot({ path: `/tmp/shared-assignment-${width}.png`, fullPage: true });
     await dialog.getByRole('button', { name: /บันทึกการแก้ไข|บันทึกงาน|มอบหมายงาน|บันทึก/ }).last().click();
     try { await expect(dialog).toHaveCount(0); }
@@ -61,9 +61,10 @@ try {
       throw error;
     }
     await expect.poll(() => writes).toBe(1);
-    await expect.poll(() => links.length).toBe(8);
-    assert.deepEqual(links.map((link) => link.classroom_id).sort(), classrooms.map((room) => room.id).sort());
-    assert.equal(assignment.title, '3 แก้ไขแล้ว');
+    const expectedRooms = initialRoomCount === 8 ? classrooms : [classrooms[0], classrooms[1], classrooms[7]];
+    await expect.poll(() => links.length).toBe(expectedRooms.length);
+    assert.deepEqual(links.map((link) => link.classroom_id).sort(), expectedRooms.map((room) => room.id).sort());
+    assert.equal(assignment.title, initialRoomCount === 8 ? '3 แก้ไขแล้ว' : '3');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.close();
   }
