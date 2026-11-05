@@ -19,7 +19,7 @@ export async function saveAssignmentToSupabase(
     throw new Error("ไม่พบห้องเรียนจริงที่เลือก");
   const requestedRooms = new Set(roomNames.map((room) => room.trim()).filter(Boolean));
   const matchedClassrooms = classrooms.filter((classroom) =>
-    requestedRooms.has(classroom.room) || requestedRooms.has(classroom.name),
+    requestedRooms.has(classroom.name || classroom.room),
   );
   if (matchedClassrooms.length !== requestedRooms.size)
     throw new Error("ไม่พบห้องเรียนจริงที่เลือกครบทุกห้อง");

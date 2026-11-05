@@ -295,6 +295,23 @@ export async function removeClassroomFromSupabase(
   }
 }
 
+export async function renameClassroomInSupabase(teacherId: string, previousName: string, nextName: string) {
+  const name = nextName.trim().replace(/\s+/g, " ");
+  if (!name || name.length > 120) throw new Error("กรอกชื่อห้องเรียนไม่เกิน 120 ตัวอักษร");
+  const classroomId = await getTeacherClassroomId(teacherId, previousName);
+  const { data: duplicates, error: lookupError } = await supabase
+    .from("classrooms").select("id").eq("teacher_id", teacherId).eq("name", name).neq("id", classroomId);
+  if (lookupError) throw new Error("ตรวจสอบชื่อห้องเรียนไม่สำเร็จ กรุณาลองใหม่");
+  if (duplicates?.length) throw new Error("มีชื่อห้องเรียนนี้แล้ว กรุณาใช้ชื่ออื่น");
+  const { data, error } = await supabase.from("classrooms")
+    .update({ name }).eq("id", classroomId).eq("teacher_id", teacherId).eq("name", previousName)
+    .select("id, name").maybeSingle<{ id: string; name: string }>();
+  if (error) throw new Error(`แก้ไขชื่อห้องเรียนไม่สำเร็จ (${error.code || "network"})`);
+  if (!data || data.id !== classroomId || data.name !== name) {
+    throw new Error("บันทึกชื่อห้องไม่สำเร็จ ห้องอาจถูกแก้ไขแล้วหรือไม่มีสิทธิ์ กรุณาโหลดรายชื่อใหม่");
+  }
+}
+
 export async function getTeacherClassroomId(teacherId: string, roomName: string) {
   const { data, error } = await supabase
     .from("classrooms")

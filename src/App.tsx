@@ -43,6 +43,7 @@ import { Results, TeacherHome, Workspace } from "./Teacher";
 import { StudentHome } from "./Student";
 import { GrowthPage } from "./growth/GrowthPage";
 import { RosterPage } from "./roster/RosterPage";
+import { renameRoom } from "./roster/model";
 import {
   availability,
   dateTime,
@@ -81,6 +82,7 @@ import {
   loadStudentProfile,
   loadTeacherRoster,
   removeClassroomFromSupabase,
+  renameClassroomInSupabase,
   updateStudentInSupabase,
   updateStudentStatusInSupabase,
 } from "./services/classroomService";
@@ -502,6 +504,17 @@ export function App() {
     const roster = await loadTeacherRoster(identity.profile.id);
     return applyTeacherRoster(next, roster);
   }
+  async function persistRoomRename(previousName: string, name: string): Promise<void> {
+    if (!identity || identity.profile.role !== "teacher") throw new Error("กรุณาเข้าสู่ระบบครูก่อน");
+    renameRoom(state, previousName, name);
+    await renameClassroomInSupabase(identity.profile.id, previousName, name);
+    setState((current) => {
+      const next = renameRoom(current, previousName, name);
+      persist(next);
+      return next;
+    });
+    setNotice({ text: "แก้ไขชื่อห้องเรียนแล้ว" });
+  }
   async function persistRoomDeletion(next: State, room: string): Promise<State> {
     if (!identity || identity.profile.role !== "teacher")
       throw new Error("กรุณาเข้าสู่ระบบครูก่อน");
@@ -881,6 +894,7 @@ export function App() {
               onPersistStatus={identity ? persistStudentStatusToSupabase : undefined}
               onPersistDeletion={identity ? persistStudentDeletion : undefined}
               onPersistRoomDeletion={identity ? persistRoomDeletion : undefined}
+              onRenameRoom={identity ? persistRoomRename : undefined}
               onResetStudentPassword={identity ? resetStudentPassword : undefined}
             />
           ) : page === "today" ? (

@@ -53,6 +53,27 @@ export function removeRoom(state: State, room: string): State {
   };
 }
 
+export function renameRoom(state: State, previousName: string, input: string): State {
+  const name = input.trim().replace(/\s+/g, " ");
+  if (!name || name.length > 120) throw new Error("กรอกชื่อห้องเรียนไม่เกิน 120 ตัวอักษร");
+  if (!state.rooms.includes(previousName)) throw new Error("ไม่พบห้องเรียนนี้");
+  if (name !== previousName && state.rooms.includes(name)) throw new Error("มีชื่อห้องเรียนนี้แล้ว กรุณาใช้ชื่ออื่น");
+  const replace = (room: string) => room === previousName ? name : room;
+  const roomSubjects = { ...state.roomSubjects };
+  delete roomSubjects[previousName];
+  roomSubjects[name] = state.roomSubjects?.[previousName] ?? "สังคมศึกษา";
+  return {
+    ...state,
+    rooms: orderedRooms(state.rooms.map(replace)),
+    roomSubjects,
+    students: state.students.map((student) => ({ ...student, room: replace(student.room) })),
+    assignments: state.assignments.map((assignment) => ({ ...assignment, rooms: assignment.rooms.map(replace) })),
+    materials: state.materials?.map((material) => ({ ...material, rooms: material.rooms.map(replace) })),
+    announcements: state.announcements?.map((announcement) => ({ ...announcement, room: replace(announcement.room) })),
+    downloadLogs: state.downloadLogs?.map((log) => ({ ...log, room: replace(log.room) })),
+  };
+}
+
 export type StudentInput = Pick<Student, "name" | "code" | "room" | "number">;
 export function validateStudentInput(
   state: State,

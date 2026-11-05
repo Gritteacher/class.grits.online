@@ -21,6 +21,7 @@ import "./roster.css";
 
 type Dialog =
   | { type: "room" }
+  | { type: "renameRoom"; room: string }
   | { type: "import" }
   | { type: "student"; student?: Student }
   | { type: "archive" | "restore"; ids: string[] }
@@ -50,6 +51,7 @@ export function RosterPage({
   onPersistStatus,
   onPersistDeletion,
   onPersistRoomDeletion,
+  onRenameRoom,
   onResetStudentPassword,
 }: {
   state: State;
@@ -67,6 +69,7 @@ export function RosterPage({
   onPersistStatus?: PersistStatus;
   onPersistDeletion?: PersistDeletion;
   onPersistRoomDeletion?: PersistRoomDeletion;
+  onRenameRoom?: (previousName: string, name: string) => Promise<void>;
   onResetStudentPassword?: ResetStudentPassword;
 }) {
   const [room, setRoom] = useState(state.rooms[0] ?? "");
@@ -186,7 +189,7 @@ export function RosterPage({
             >
               <Users size={20} />
               <span>
-                <strong>ห้องเรียน {r}</strong>
+                <strong>{r}</strong>
                 <small>
                   {
                     state.students.filter(
@@ -206,6 +209,13 @@ export function RosterPage({
               <h2>{currentRoom ? `ห้องเรียน ${currentRoom}` : "ยังไม่มีห้องเรียน"}</h2>
             </div>
             <div className="roster-actions">
+              {onRenameRoom && <button
+                className="icon-button"
+                aria-label="แก้ไขชื่อห้องเรียน"
+                title="แก้ไขชื่อห้องเรียน"
+                disabled={!currentRoom}
+                onClick={() => open({ type: "renameRoom", room: currentRoom })}
+              ><Pencil size={18} /></button>}
               <button
                 className="button neutral"
                 disabled={!currentRoom}
@@ -367,6 +377,19 @@ export function RosterPage({
           )}
         </section>
       </div>
+      {dialog?.type === "renameRoom" && onRenameRoom && (
+        <RenameRoomForm
+          room={dialog.room}
+          onSave={async (name) => {
+            await onRenameRoom(dialog.room, name);
+            setRoom(name);
+            setSelected([]);
+            setQuery("");
+            setDialog(null);
+          }}
+          onClose={() => setDialog(null)}
+        />
+      )}
       {dialog?.type === "room" && (
         <RoomForm
           state={state}
@@ -478,6 +501,45 @@ export function RosterPage({
       )}
     </>
   );
+}
+
+function RenameRoomForm({ room, onSave, onClose }: {
+  room: string;
+  onSave: (name: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(room);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (busy) return;
+    setError("");
+    setBusy(true);
+    try {
+      await onSave(name.trim().replace(/\s+/g, " "));
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "แก้ไขชื่อห้องเรียนไม่สำเร็จ");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return <Modal title="แก้ไขชื่อห้องเรียน" onClose={() => { if (!busy) onClose(); }}>
+    <form onSubmit={submit}>
+      <div className="modal-body form-stack">
+        <label>ชื่อห้องเรียน<input autoFocus required maxLength={120} value={name}
+          disabled={busy} onChange={(event) => setName(event.target.value)} /></label>
+        {error && <p className="form-error" role="alert">{error}</p>}
+      </div>
+      <div className="modal-actions">
+        <button type="button" className="button neutral" disabled={busy} onClick={onClose}>ยกเลิก</button>
+        <button className="button teal" disabled={busy || !name.trim()}>
+          {busy ? <span className="loading-spinner" aria-hidden="true" /> : <Check size={17} />}
+          {busy ? "กำลังบันทึก" : "บันทึกชื่อห้อง"}
+        </button>
+      </div>
+    </form>
+  </Modal>;
 }
 
 function RoomForm({

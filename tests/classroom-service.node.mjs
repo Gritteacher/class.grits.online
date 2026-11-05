@@ -4,6 +4,7 @@ import { stripTypeScriptTypes } from "node:module";
 import { SourceTextModule, SyntheticModule } from "node:vm";
 
 let responses = [];
+let updates = [];
 const client = {
   from(table) {
     const expected = responses.shift();
@@ -12,6 +13,7 @@ const client = {
       get(_target, key) {
         if (key === "then") return (resolve) => resolve(expected.result);
         return (...args) => {
+          if (key === "update") updates.push(args[0]);
           if (key === "eq" && args[0] === "teacher_id") assert.equal(args[1], "teacher");
           return chain;
         };
@@ -27,7 +29,7 @@ const source = await readFile(new URL("../src/services/classroomService.ts", imp
 const module = new SourceTextModule(stripTypeScriptTypes(source));
 await module.link(() => dependency);
 await module.evaluate();
-const { getTeacherClassroomId, removeClassroomFromSupabase, applyTeacherRoster } = module.namespace;
+const { getTeacherClassroomId, removeClassroomFromSupabase, applyTeacherRoster, renameClassroomInSupabase } = module.namespace;
 const rooms = [
   { id: "r1", name: "ม.6/1", room: "1" },
   { id: "r2", name: "ม.5/1", room: "1" },
@@ -48,4 +50,46 @@ for (const deleted of [null, { id: "r1" }]) {
   else await assert.rejects(removeClassroomFromSupabase("teacher", "ม.6/1"), /สิทธิ์การลบ/);
   assert.equal(responses.length, 0);
 }
-console.log("Passed: full room names, ambiguous room rejection, roster labels, verified deletion.");
+for (const scenario of ["saved", "duplicate", "denied"]) {
+  updates = [];
+  responses = [lookup(), { table: "classrooms", result: {
+    data: scenario === "duplicate" ? [{ id: "r2" }] : [], error: null,
+  } }];
+  if (scenario !== "duplicate") responses.push({ table: "classrooms", result: {
+    data: scenario === "saved" ? { id: "r1", name: "ห้องใหม่" } : null, error: null,
+  } });
+  const operation = renameClassroomInSupabase("teacher", "ม.6/1", "  ห้องใหม่  ");
+  if (scenario === "saved") await operation;
+  else await assert.rejects(operation, scenario === "duplicate" ? /มีชื่อห้องเรียนนี้แล้ว/ : /บันทึกชื่อห้องไม่สำเร็จ/);
+  assert.deepEqual(updates, scenario === "duplicate" ? [] : [{ name: "ห้องใหม่" }]);
+  assert.equal(responses.length, 0);
+}
+const rosterSource = await readFile(new URL("../src/roster/model.ts", import.meta.url), "utf8");
+const rosterModule = new SourceTextModule(stripTypeScriptTypes(rosterSource));
+const stubs = new SyntheticModule(["defaultAvatar", "gradeEntries"], function () {
+  this.setExport("defaultAvatar", () => ({}));
+  this.setExport("gradeEntries", () => []);
+});
+await rosterModule.link(() => stubs);
+await rosterModule.evaluate();
+const original = {
+  rooms: ["ม.6/1", "ม.5/1"], roomSubjects: { "ม.6/1": "ประวัติศาสตร์" },
+  students: [{ id: "s1", room: "ม.6/1" }, { id: "s2", room: "ม.5/1" }],
+  assignments: [{ id: "a1", rooms: ["ม.6/1", "ม.5/1"] }],
+  materials: [{ id: "m1", rooms: ["ม.6/1"] }],
+  announcements: [{ id: "n1", room: "ม.6/1" }],
+  downloadLogs: [{ room: "ม.6/1" }], grades: [{ id: "g1" }], submissions: [{ id: "sub1" }],
+};
+const renamed = rosterModule.namespace.renameRoom(original, "ม.6/1", "ห้องใหม่");
+assert.equal(renamed.students[0].room, "ห้องใหม่");
+assert.equal(renamed.students[1].room, "ม.5/1");
+assert.deepEqual(renamed.assignments[0].rooms, ["ห้องใหม่", "ม.5/1"]);
+assert.deepEqual(renamed.materials[0].rooms, ["ห้องใหม่"]);
+assert.equal(renamed.announcements[0].room, "ห้องใหม่");
+assert.equal(renamed.downloadLogs[0].room, "ห้องใหม่");
+assert.equal(renamed.roomSubjects["ห้องใหม่"], "ประวัติศาสตร์");
+assert.equal(renamed.grades, original.grades);
+assert.equal(renamed.submissions, original.submissions);
+assert.equal(original.students[0].room, "ม.6/1");
+assert.throws(() => rosterModule.namespace.renameRoom(original, "ม.6/1", "ม.5/1"), /มีชื่อห้องเรียนนี้แล้ว/);
+console.log("Passed: room lookup, verified deletion, rename success/duplicate/denied, linked data preservation.");
