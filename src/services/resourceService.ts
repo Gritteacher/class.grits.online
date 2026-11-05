@@ -217,20 +217,18 @@ export async function deleteAnnouncement(teacherId: string, announcementId: stri
   if (error) throw new Error("ลบประกาศไม่สำเร็จ");
 }
 
-export async function openMaterial(studentId: string, material: Material) {
-  // Open a tab synchronously so mobile browsers do not block the later signed URL.
-  const popup = window.open("about:blank", "_blank");
+export function materialFileName(material: Material) {
+  return material.filePath.split("/").at(-1)?.replace(/^[0-9a-f-]{36}-/i, "") || material.title;
+}
+
+export async function getMaterialUrl(material: Material, studentId?: string) {
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(material.filePath, 3600);
   if (error || !data?.signedUrl) {
-    popup?.close();
     throw new Error("เปิดสื่อไม่สำเร็จ กรุณาลองใหม่");
   }
-  const { error: logError } = await supabase.from("material_download_logs").insert({ material_id: material.id, student_id: studentId });
-  if (logError) {
-    popup?.close();
-    throw new Error("เปิดสื่อได้ แต่บันทึกประวัติไม่สำเร็จ");
+  if (studentId) {
+    const { error: logError } = await supabase.from("material_download_logs").insert({ material_id: material.id, student_id: studentId });
+    if (logError) throw new Error("เปิดสื่อได้ แต่บันทึกประวัติไม่สำเร็จ");
   }
-  if (popup) popup.location.href = data.signedUrl;
-  else window.location.href = data.signedUrl;
   return data.signedUrl;
 }

@@ -1,8 +1,10 @@
 import { useRef, useState } from "react";
-import { Bell, BookOpen, Download, FileText, Megaphone, Plus, Trash2, Upload } from "lucide-react";
+import { Bell, BookOpen, Download, Eye, FileText, Megaphone, Plus, Trash2, Upload } from "lucide-react";
 import type { Announcement, Material, Room, State } from "../model";
 import { Modal } from "../ui";
-import { createAnnouncement, createMaterial, deleteAnnouncement, deleteMaterial, openMaterial } from "../services/resourceService";
+import { createAnnouncement, createMaterial, deleteAnnouncement, deleteMaterial, getMaterialUrl, materialFileName } from "../services/resourceService";
+import { downloadFile } from "../lib/downloadFile";
+import { FilePreview } from "../components/FilePreview";
 import "./resources.css";
 
 export function ResourcesPage({
@@ -21,6 +23,8 @@ export function ResourcesPage({
   onNotice: (text: string, error?: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [fileAction, setFileAction] = useState<{ id: string; type: "view" | "download" } | null>(null);
+  const [preview, setPreview] = useState<{ material: Material; url: string } | null>(null);
   const [materialOpen, setMaterialOpen] = useState(false);
   const [announcementOpen, setAnnouncementOpen] = useState(false);
   const [deleting, setDeleting] = useState<{ type: "material" | "announcement"; value: Material | Announcement } | null>(null);
@@ -48,18 +52,22 @@ export function ResourcesPage({
     }
   }
 
-  async function view(material: Material) {
+  async function accessFile(material: Material, type: "view" | "download") {
     if (busy) return;
-    if (!studentId) {
-      onNotice("กรุณาเข้าสู่ระบบนักเรียนก่อนเปิดสื่อ", true);
+    if (role === "student" ? !studentId : !userId) {
+      onNotice("กรุณาเข้าสู่ระบบก่อนเปิดสื่อ", true);
       return;
     }
     setBusy(true);
+    setFileAction({ id: material.id, type });
     try {
-      await openMaterial(studentId, material);
+      const url = await getMaterialUrl(material, role === "student" ? studentId : undefined);
+      if (type === "view") setPreview({ material, url });
+      else await downloadFile(url, materialFileName(material));
     } catch (error) {
       onNotice(error instanceof Error ? error.message : "เปิดสื่อไม่สำเร็จ", true);
     } finally {
+      setFileAction(null);
       setBusy(false);
     }
   }
@@ -82,7 +90,7 @@ export function ResourcesPage({
       <div className="resource-layout">
         <section className="panel resource-panel">
           <div className="section-title"><div><span className="eyebrow"><BookOpen size={15} /> เอกสาร</span><h2>{role === "teacher" ? "สื่อการสอน" : "สื่อของห้องเรียน"}</h2></div><span className="muted">{materials.length} รายการ</span></div>
-          {!materials.length ? <div className="resource-empty"><FileText size={24} /><p>ยังไม่มีสื่อในห้องเรียนนี้</p></div> : <div className="resource-list">{materials.map((material) => <article className="resource-item" key={material.id}><div className="resource-icon"><FileText /></div><div className="resource-copy"><h3>{material.title}</h3><p>{material.description || "ไม่มีรายละเอียดเพิ่มเติม"}</p><span>{material.rooms.join(" · ")} · {new Date(material.createdAt).toLocaleDateString("th-TH")}</span></div><div className="resource-item-actions">{role === "student" ? <button className="button teal" disabled={busy} onClick={() => void view(material)}>{busy ? <span className="loading-spinner" aria-hidden="true" /> : <Download size={16} />} {busy ? "กำลังเปิดสื่อ" : "ดู / ดาวน์โหลด"}</button> : <button className="icon-button danger" title="ลบสื่อ" aria-label={`ลบ ${material.title}`} onClick={() => setDeleting({ type: "material", value: material })}><Trash2 size={17} /></button>}</div></article>)}</div>}
+          {!materials.length ? <div className="resource-empty"><FileText size={24} /><p>ยังไม่มีสื่อในห้องเรียนนี้</p></div> : <div className="resource-list">{materials.map((material) => <article className="resource-item" key={material.id}><div className="resource-icon"><FileText /></div><div className="resource-copy"><h3>{material.title}</h3><p>{material.description || "ไม่มีรายละเอียดเพิ่มเติม"}</p><span>{material.rooms.join(" · ")} · {new Date(material.createdAt).toLocaleDateString("th-TH")}</span></div><div className="resource-item-actions"><button className="button neutral" disabled={busy} aria-label={`ดู ${material.title}`} onClick={() => void accessFile(material, "view")}>{fileAction?.id === material.id && fileAction.type === "view" ? <span className="loading-spinner" aria-hidden="true" /> : <Eye size={16} />} ดู</button><button className="button teal" disabled={busy} aria-label={`ดาวน์โหลด ${material.title}`} onClick={() => void accessFile(material, "download")}>{fileAction?.id === material.id && fileAction.type === "download" ? <span className="loading-spinner" aria-hidden="true" /> : <Download size={16} />} ดาวน์โหลด</button>{role === "teacher" && <button className="icon-button danger" disabled={busy} title="ลบสื่อ" aria-label={`ลบ ${material.title}`} onClick={() => setDeleting({ type: "material", value: material })}><Trash2 size={17} /></button>}</div></article>)}</div>}
         </section>
         <section className="panel resource-panel">
           <div className="section-title"><div><span className="eyebrow"><Bell size={15} /> ข่าวสาร</span><h2>ประกาศล่าสุด</h2></div><span className="muted">{announcements.length} รายการ</span></div>
@@ -93,6 +101,14 @@ export function ResourcesPage({
         <div className="section-title"><div><span className="eyebrow"><Download size={15} /> การใช้งานสื่อ</span><h2>ประวัติการเปิดสื่อ</h2></div><span className="muted">{downloadLogs.length} รายการ</span></div>
         {!downloadLogs.length ? <div className="resource-empty compact"><Download size={24} /><p>ยังไม่มีประวัติการเปิดสื่อ</p></div> : <div className="download-history">{downloadLogs.map((log) => <article className="download-log" key={log.id}><div className="resource-icon"><Download size={17} /></div><div className="resource-copy"><h3>{log.materialTitle}</h3><p>{role === "teacher" ? `${log.studentName} · ${log.studentCode} · ${log.room}` : "เปิดสื่อของคุณ"}</p></div><time>{new Date(log.downloadedAt).toLocaleString("th-TH")}</time></article>)}</div>}
       </section>
+      {preview && <Modal title={preview.material.title} onClose={() => setPreview(null)} wide>
+        <div className="modal-body"><FilePreview compact={false} file={{ name: materialFileName(preview.material), type: preview.material.mimeType, data: preview.url }} /></div>
+        <div className="modal-actions"><button className="button neutral" onClick={() => setPreview(null)}>ปิด</button>
+          <button className="button teal" disabled={busy} onClick={() => void accessFile(preview.material, "download")}>
+            {busy ? <span className="loading-spinner" aria-hidden="true" /> : <Download size={16} />} ดาวน์โหลด
+          </button>
+        </div>
+      </Modal>}
       {materialOpen && <MaterialModal rooms={state.rooms} busy={busy} onClose={() => setMaterialOpen(false)} onSubmit={async (input) => { if (!userId) return; setBusy(true); try { const material = await createMaterial({ ...input, teacherId: userId }); onState({ ...state, materials: [material, ...materials] }); onNotice("อัปโหลดสื่อเรียบร้อยแล้ว"); setMaterialOpen(false); } catch (error) { onNotice(error instanceof Error ? error.message : "อัปโหลดสื่อไม่สำเร็จ", true); } finally { setBusy(false); } }} />}
       {announcementOpen && <AnnouncementModal rooms={state.rooms} busy={busy} onClose={() => setAnnouncementOpen(false)} onSubmit={async (input) => { if (!userId) return; setBusy(true); try { const announcement = await createAnnouncement({ ...input, teacherId: userId }); onState({ ...state, announcements: [announcement, ...announcements] }); onNotice("ประกาศเรียบร้อยแล้ว"); setAnnouncementOpen(false); } catch (error) { onNotice(error instanceof Error ? error.message : "สร้างประกาศไม่สำเร็จ", true); } finally { setBusy(false); } }} />}
       {deleting && <Modal title="ยืนยันการลบ" onClose={() => setDeleting(null)}><div className="modal-body"><p>ต้องการลบรายการนี้ใช่ไหม ข้อมูลที่ลบแล้วไม่สามารถกู้คืนได้</p></div><div className="modal-actions"><button className="button neutral" onClick={() => setDeleting(null)}>ยกเลิก</button><button className="button coral" disabled={busy} onClick={() => void remove()}>{busy ? <span className="loading-spinner" aria-hidden="true" /> : <Trash2 size={16} />} {busy ? "กำลังลบ" : "ยืนยันลบ"}</button></div></Modal>}

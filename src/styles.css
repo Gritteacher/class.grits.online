@@ -1062,6 +1062,7 @@ input[type="checkbox"] {
 }
 
 .file-preview:disabled { opacity: 1; }
+.file-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .file-preview-media { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; }
 .file-preview.compact .file-preview-media { width: 76px; min-height: 58px; }
 .file-preview.expanded .file-preview-media { min-height: 160px; }

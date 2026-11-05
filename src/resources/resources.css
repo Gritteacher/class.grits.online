@@ -10,7 +10,10 @@
 .resource-copy h3, .announcement-item h3 { margin: 0; font-size: 15px; }
 .resource-copy p, .announcement-item p { margin: 4px 0; color: var(--muted); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
 .resource-copy span, .announcement-item time { color: var(--muted); font-size: 12px; }
-.resource-item-actions { flex: 0 0 auto; }
+.resource-item-actions { display: flex; flex-wrap: wrap; gap: 8px; flex: 0 0 auto; }
+.resource-item { flex-wrap: wrap; }
+.resource-copy h3 { overflow-wrap: anywhere; }
+@media (max-width: 560px) { .resource-item-actions { width: 100%; justify-content: flex-end; } }
 .announcement-item { align-items: flex-start; }
 .announcement-room { display: inline-block; margin-bottom: 5px; color: var(--accent); font-size: 12px; font-weight: 650; }
 .resource-empty { min-height: 150px; display: grid; place-items: center; align-content: center; gap: 8px; color: var(--muted); text-align: center; }

@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   ClipboardList,
   ExternalLink,
+  Eye,
+  Download,
   File,
   FlaskConical,
   GraduationCap,
@@ -37,6 +39,7 @@ import {
 } from "./model";
 import { Modal, Status } from "./ui";
 import { FilePreview } from "./components/FilePreview";
+import { downloadFile } from "./lib/downloadFile";
 import { SchoolLogo } from "./components/SchoolLogo";
 import { Results, TeacherHome, Workspace } from "./Teacher";
 import { StudentHome } from "./Student";
@@ -1679,6 +1682,16 @@ function SubmissionPreview({
 }) {
   const url = safeLink(submission.link ?? "");
   const file = submission.file;
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
+  async function downloadAttachment() {
+    if (!file || downloading) return;
+    setDownloading(true);
+    setDownloadError("");
+    try { await downloadFile(file.data, file.name); }
+    catch { setDownloadError("ดาวน์โหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่"); }
+    finally { setDownloading(false); }
+  }
   return (
     <Modal
       title={assignment.title}
@@ -1714,11 +1727,14 @@ function SubmissionPreview({
           )}
           {file && <FilePreview file={file} compact={false} />}
           {file && (
-            <a className="button neutral" href={file.data} target="_blank" rel="noopener noreferrer" download={file.name}>
-              <File size={17} />
-              เปิดหรือดาวน์โหลด {file.name}
-            </a>
+            <div className="file-actions">
+              <a className="button neutral" href={file.data} target="_blank" rel="noopener noreferrer"><Eye size={17} /> ดู</a>
+              <button type="button" className="button teal" disabled={downloading} onClick={() => void downloadAttachment()}>
+                {downloading ? <span className="loading-spinner" aria-hidden="true" /> : <Download size={17} />} ดาวน์โหลด
+              </button>
+            </div>
           )}
+          {downloadError && <p className="form-error" role="alert">{downloadError}</p>}
         </div>
         {currentGrade && (
           <section className="feedback-result">
