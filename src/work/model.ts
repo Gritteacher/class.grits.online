@@ -155,7 +155,7 @@ export function saveAssignment(
   const changedScale = old.rawMax !== a.rawMax || old.finalMax !== a.finalMax;
   if (changedScale && grades.length > 0 && !confirmed)
     throw new Error("ยืนยันผลกระทบต่อคะแนนก่อนบันทึก");
-  if (old.groupId && (a.rooms.length !== 1 || a.rooms[0] !== old.rooms[0]))
+  if (old.groupId && (a.rooms.length !== old.rooms.length || a.rooms.some((room) => !old.rooms.includes(room))))
     throw new Error(
       "เปลี่ยนห้องของงานเดิมไม่ได้ กรุณาเลือกห้องที่จะปรับในกลุ่มงาน",
     );
@@ -202,7 +202,10 @@ export function saveAssignmentGroup(
     targets.some((room) => !siblings.some((a) => a.rooms.includes(room)))
   )
     throw new Error("เลือกห้องที่ได้รับงานนี้อย่างน้อย 1 ห้อง");
-  const selected = siblings.filter((a) => targets.includes(a.rooms[0]));
+  const selected = siblings.filter((a) => a.rooms.some((room) => targets.includes(room)));
+  if (selected.some((assignment) => assignment.rooms.some((room) => !targets.includes(room)))) {
+    throw new Error("ห้องที่ผูกกับงานเดียวกันใช้รายละเอียดร่วมกัน กรุณาเลือกให้ครบทุกห้องของงานนั้น");
+  }
   if (
     !expectedRevisions ||
     [source, ...selected].some(

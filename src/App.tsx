@@ -1304,13 +1304,14 @@ function NewAssignment({
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState("");
   const siblings = initial ? siblingAssignments(state, initial) : [];
+  const editableRooms = initial ? [...new Set(siblings.flatMap((assignment) => assignment.rooms))] : rooms;
   const [revisions] = useState(() =>
     initial
       ? Object.fromEntries(siblings.map((a) => [a.id, a.revision ?? 0]))
       : undefined,
   );
   const selectedAssignments = siblings.filter((a) =>
-    targets.includes(a.rooms[0]),
+    a.rooms.some((room) => targets.includes(room)),
   );
   const nextMax = (a: Assignment) => ({
     ...a,
@@ -1420,24 +1421,27 @@ function NewAssignment({
               {initial ? "แก้ไขห้องไหนบ้าง" : "ส่งให้ห้องไหนบ้าง"}
             </legend>
             <div className="room-checkboxes">
-              {(initial ? siblings.map((a) => a.rooms[0]) : rooms).map((r) => (
+              {editableRooms.map((r) => (
                 <label key={r} className={targets.includes(r) ? "checked" : ""}>
                   <input
                     type="checkbox"
                     checked={targets.includes(r)}
                     onChange={(e) => {
                       setConfirmed(false);
-                      setTargets(
-                        e.target.checked
-                          ? [...targets, r]
-                          : targets.filter((x) => x !== r),
-                      );
+                      const linkedRooms = initial
+                        ? siblings.find((assignment) => assignment.rooms.includes(r))?.rooms ?? [r]
+                        : [r];
+                      setTargets((current) => e.target.checked
+                        ? [...new Set([...current, ...linkedRooms])]
+                        : current.filter((room) => !linkedRooms.includes(room)));
                     }}
                   />
                   {r}
                 </label>
               ))}
             </div>
+            {initial && siblings.some((assignment) => assignment.rooms.length > 1) &&
+              <p className="muted">ห้องที่ผูกกับงานเดียวกันใช้รายละเอียดและกำหนดส่งร่วมกัน</p>}
           </fieldset>
           {initial && (
             <section
@@ -1446,12 +1450,12 @@ function NewAssignment({
             >
               <h3>
                 เปลี่ยน {targets.length} ห้อง · คงเดิม{" "}
-                {siblings.length - targets.length} ห้อง
+                {editableRooms.length - targets.length} ห้อง
               </h3>
               <ul>
-                {selectedAssignments.map((a) => (
-                  <li key={a.id}>
-                    <strong>{a.rooms[0]}</strong>
+                {selectedAssignments.flatMap((a) => a.rooms.map((room) => (
+                  <li key={`${a.id}:${room}`}>
+                    <strong>{room}</strong>
                     <span>
                       ดิบ {a.rawMax} → {nextMax(a).rawMax || "—"} · เก็บ{" "}
                       {a.finalMax} → {nextMax(a).finalMax || "—"}
@@ -1463,7 +1467,7 @@ function NewAssignment({
                         : ""}
                     </span>
                   </li>
-                ))}
+                )))}
               </ul>
             </section>
           )}
@@ -1513,7 +1517,7 @@ function NewAssignment({
             </label>
             <label hidden={submissionMode !== "group"}>
               จำนวนสมาชิกสูงสุด
-              <input type="number" min="2" max="50" step="1" value={groupSize} onChange={(e) => setGroupSize(e.target.value)} />
+              <input type="number" min="2" max="50" step="1" disabled={!submissionRequired || submissionMode !== "group"} value={groupSize} onChange={(e) => setGroupSize(e.target.value)} />
             </label>
           </div>
           <div
