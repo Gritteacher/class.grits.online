@@ -506,7 +506,11 @@ export function App() {
     if (!identity || identity.profile.role !== "teacher")
       throw new Error("กรุณาเข้าสู่ระบบครูก่อน");
     await removeClassroomFromSupabase(identity.profile.id, room);
-    return next;
+    const roster = await loadTeacherRoster(identity.profile.id);
+    if (roster.classrooms.some((classroom) => (classroom.name || classroom.room) === room)) {
+      throw new Error("ยังพบห้องเรียนนี้หลังลบ กรุณาโหลดรายชื่อใหม่แล้วตรวจสอบอีกครั้ง");
+    }
+    return applyTeacherRoster(next, roster);
   }
   async function syncRealAssignments(previous: State, next: State) {
     if (!identity || identity.profile.role !== "teacher") return;

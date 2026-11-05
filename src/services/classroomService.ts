@@ -61,7 +61,7 @@ export async function loadStudentProfile(studentId: string): Promise<Student | n
     id: profile.id,
     code: profile.student_code || profile.id.slice(0, 8),
     name: profile.display_name || "ยังไม่ระบุชื่อ",
-    room: classroom.room || classroom.name,
+    room: classroom.name || classroom.room,
     number: member.student_number ?? 0,
     status: profile.status ?? "active",
     subject: classroom.subject || "สังคมศึกษา",
@@ -106,7 +106,7 @@ export async function loadTeacherRoster(teacherId: string): Promise<TeacherRoste
   const roomByClassroomId = new Map(
     classroomRows.map((classroom) => [
       classroom.id,
-      classroom.room || classroom.name,
+      classroom.name || classroom.room,
     ]),
   );
   const students: Student[] = memberRows.flatMap((member) => {
@@ -282,44 +282,46 @@ export async function removeClassroomFromSupabase(
     .eq("classroom_id", classroomId);
   if (announcementError) throw new Error("ตรวจสอบประกาศของห้องไม่สำเร็จ");
   if (announcementCount) throw new Error("ลบไม่ได้ เพราะห้องนี้ยังมีประกาศอยู่");
-  const { error } = await supabase
+  const { data: deletedClassroom, error } = await supabase
     .from("classrooms")
     .delete()
     .eq("id", classroomId)
-    .eq("teacher_id", teacherId);
-  if (error) throw new Error("ลบห้องเรียนไม่สำเร็จ");
+    .eq("teacher_id", teacherId)
+    .select("id")
+    .maybeSingle<{ id: string }>();
+  if (error) throw new Error(`ลบห้องเรียนไม่สำเร็จ (${error.code || "network"})`);
+  if (!deletedClassroom || deletedClassroom.id !== classroomId) {
+    throw new Error("ยังลบห้องเรียนไม่สำเร็จ กรุณาตรวจสอบสิทธิ์การลบห้องของบัญชีครู แล้วลองใหม่");
+  }
 }
 
 export async function getTeacherClassroomId(teacherId: string, roomName: string) {
-  const { data: byRoom, error: roomError } = await supabase
+  const { data, error } = await supabase
     .from("classrooms")
-    .select("id")
-    .eq("teacher_id", teacherId)
-    .eq("room", roomName)
-    .maybeSingle<{ id: string }>();
-  if (roomError) throw new Error("ค้นหาห้องเรียนไม่สำเร็จ กรุณาลองใหม่");
-  if (byRoom) return byRoom.id;
-  const { data: byName, error: nameError } = await supabase
-    .from("classrooms")
-    .select("id")
-    .eq("teacher_id", teacherId)
-    .eq("name", roomName)
-    .maybeSingle<{ id: string }>();
-  if (nameError || !byName)
+    .select("id, name, room")
+    .eq("teacher_id", teacherId);
+  if (error) throw new Error(`ค้นหาห้องเรียนไม่สำเร็จ (${error.code || "network"}) กรุณาลองใหม่`);
+  const rows = (data ?? []) as { id: string; name: string; room: string }[];
+  const exact = rows.filter((row) => (row.name || row.room) === roomName);
+  const matches = exact.length ? exact : rows.filter((row) => row.room === roomName);
+  if (matches.length > 1) {
+    throw new Error(`พบห้องเรียนชื่อหรือเลขห้องซ้ำ (${roomName}) กรุณาโหลดรายชื่อใหม่และเลือกห้องด้วยชื่อเต็ม`);
+  }
+  if (!matches.length)
     throw new Error("ไม่พบห้องเรียนจริงใน Supabase กรุณารีเฟรชรายชื่อ");
-  return byName.id;
+  return matches[0].id;
 }
 
 export function applyTeacherRoster(state: State, roster: TeacherRoster): State {
   const rooms: Room[] = roster.classrooms.map(
-    (classroom) => classroom.room || classroom.name,
+    (classroom) => classroom.name || classroom.room,
   );
   return {
     ...state,
     rooms,
     roomSubjects: Object.fromEntries(
       roster.classrooms.map((classroom) => [
-        classroom.room || classroom.name,
+        classroom.name || classroom.room,
         classroom.subject?.trim() || "สังคมศึกษา",
       ]),
     ),

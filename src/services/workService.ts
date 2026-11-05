@@ -77,7 +77,7 @@ export async function loadWork(userId: string, role: "teacher" | "student"): Pro
   const roomById = new Map(
     ((classroomRows ?? []) as ClassroomRow[]).map((classroom) => [
       classroom.id,
-      classroom.room || classroom.name,
+      classroom.name || classroom.room,
     ]),
   );
   const roomsByAssignment = new Map<string, string[]>();

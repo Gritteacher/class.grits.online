@@ -31,7 +31,7 @@ function safeFileName(name: string) {
 }
 
 function mapRooms(classrooms: ClassroomRow[], ids: string[]) {
-  const byId = new Map(classrooms.map((room) => [room.id, room.room || room.name]));
+  const byId = new Map(classrooms.map((room) => [room.id, room.name || room.room]));
   return ids.flatMap((id) => {
     const room = byId.get(id);
     return room ? [room] : [];
@@ -85,7 +85,7 @@ export async function loadResources(userId: string, role: "teacher" | "student")
     return [{
       id: item.id,
       classroomId: item.classroom_id,
-      room: classroom.room || classroom.name,
+      room: classroom.name || classroom.room,
       title: item.title,
       body: item.body,
       publishedAt: item.published_at,
@@ -107,7 +107,7 @@ export async function loadResources(userId: string, role: "teacher" | "student")
     ? await supabase.from("classroom_members").select("student_id, classroom_id").in("student_id", studentIds)
     : { data: [], error: null };
   if (downloadMemberError) throw new Error("โหลดห้องเรียนในประวัติไม่สำเร็จ");
-  const roomByClassroomId = new Map(classroomRows.map((room) => [room.id, room.room || room.name]));
+  const roomByClassroomId = new Map(classroomRows.map((room) => [room.id, room.name || room.room]));
   const roomByStudentId = new Map(
     (memberRows ?? []).map((item) => [item.student_id, roomByClassroomId.get(item.classroom_id) ?? ""] as const),
   );
@@ -157,7 +157,7 @@ export async function createMaterial(input: {
     throw new Error("รองรับเฉพาะไฟล์ PDF หรือรูปภาพ");
   }
   const classrooms = await teacherClassrooms(input.teacherId);
-  const selected = classrooms.filter((room) => input.rooms.includes(room.room || room.name));
+  const selected = classrooms.filter((room) => input.rooms.includes(room.name || room.room));
   if (selected.length !== new Set(input.rooms).size) throw new Error("ไม่พบห้องเรียนที่เลือกครบ");
   const path = `materials/${input.teacherId}/${crypto.randomUUID()}-${safeFileName(input.file.name)}`;
   const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, input.file, {
@@ -187,7 +187,7 @@ export async function createMaterial(input: {
   }
   return {
     id: row.id, title: row.title, description: row.description, filePath: row.file_path,
-    mimeType: row.mime_type, fileSize: Number(row.file_size), rooms: selected.map((room) => room.room || room.name), createdAt: row.created_at,
+    mimeType: row.mime_type, fileSize: Number(row.file_size), rooms: selected.map((room) => room.name || room.room), createdAt: row.created_at,
   } satisfies Material;
 }
 
@@ -203,7 +203,7 @@ export async function createAnnouncement(input: { teacherId: string; room: Room;
   const body = input.body.trim();
   if (!title || !body) throw new Error("กรอกหัวข้อและรายละเอียดประกาศให้ครบ");
   const classrooms = await teacherClassrooms(input.teacherId);
-  const classroom = classrooms.find((item) => (item.room || item.name) === input.room);
+  const classroom = classrooms.find((item) => (item.name || item.room) === input.room);
   if (!classroom) throw new Error("ไม่พบห้องเรียนที่เลือก");
   const { data, error } = await supabase.from("announcements").insert({
     classroom_id: classroom.id, title, body, teacher_id: input.teacherId,

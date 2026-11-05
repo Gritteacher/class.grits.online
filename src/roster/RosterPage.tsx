@@ -186,7 +186,7 @@ export function RosterPage({
             >
               <Users size={20} />
               <span>
-                <strong>{r}</strong>
+                <strong>ห้องเรียน {r}</strong>
                 <small>
                   {
                     state.students.filter(
@@ -203,7 +203,7 @@ export function RosterPage({
           <div className="section-title roster-title">
             <div>
               <p className="eyebrow">รายชื่อประจำห้อง</p>
-              <h2>{currentRoom || "ยังไม่มีห้องเรียน"}</h2>
+              <h2>{currentRoom ? `ห้องเรียน ${currentRoom}` : "ยังไม่มีห้องเรียน"}</h2>
             </div>
             <div className="roster-actions">
               <button
@@ -437,7 +437,7 @@ export function RosterPage({
           <div className="modal-body form-stack">
             <p>
               {dialog.type === "removeRoom"
-                ? "ลบได้เฉพาะห้องว่างที่ไม่มีนักเรียนหรือประวัติงาน"
+                ? "ลบได้เฉพาะห้องว่างที่ไม่มีนักเรียน รวมถึงรายชื่อที่พักไว้ และไม่มีงาน สื่อการสอน หรือประกาศที่ผูกอยู่"
                 : dialog.type === "deleteStudents"
                   ? "การลบจะลบบัญชีนักเรียน โปรไฟล์ และข้อมูลที่ผูกกับบัญชีนี้ออกจากระบบถาวร"
                 : "งาน คะแนน และอวตาร์เดิมจะยังอยู่ครบ สามารถคืนรายชื่อกลับมาใช้งานได้"}
