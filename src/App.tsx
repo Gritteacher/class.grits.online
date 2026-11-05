@@ -572,7 +572,7 @@ export function App() {
       setNotice({ text: message });
       if (identity?.profile.role === "teacher") {
         const addedRooms = next.rooms.filter((room) => !previousRooms.has(room));
-        void Promise.all(
+        if (addedRooms.length) void Promise.all(
           addedRooms.map((roomName) => {
             const match = roomName.match(/^ม\.(\d+)\/(\d+)$/);
             return createClassroom({
@@ -584,7 +584,14 @@ export function App() {
               subject: next.roomSubjects?.[roomName] ?? "สังคมศึกษา",
             });
           }),
-        ).catch(() => {
+        ).then(async () => {
+          const roster = await loadTeacherRoster(identity.profile.id);
+          setState((current) => {
+            const synced = applyTeacherRoster(current, roster);
+            persist(synced);
+            return synced;
+          });
+        }).catch(() => {
           setNotice({
             text: "บันทึกหน้าจอแล้ว แต่เพิ่มห้องใน Supabase ไม่สำเร็จ กรุณารีเฟรชแล้วลองใหม่",
             error: true,
