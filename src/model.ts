@@ -279,7 +279,6 @@ export function emptyState(): State {
     rooms: [],
     roomSubjects: {},
     students: [],
-    growth: seedGrowth([]),
     assignments: [],
     submissions: [],
     grades: [],

@@ -17,7 +17,6 @@ import {
   MoreHorizontal,
   Plus,
   Send,
-  Sprout,
   Sun,
   TrendingUp,
   Upload,
@@ -41,7 +40,6 @@ import { FilePreview } from "./components/FilePreview";
 import { SchoolLogo } from "./components/SchoolLogo";
 import { Results, TeacherHome, Workspace } from "./Teacher";
 import { StudentHome } from "./Student";
-import { GrowthPage } from "./growth/GrowthPage";
 import { RosterPage } from "./roster/RosterPage";
 import { renameRoom } from "./roster/model";
 import {
@@ -96,7 +94,6 @@ import {
 } from "./services/assignmentService";
 import { saveGradeToSupabase, saveReviewToSupabase } from "./services/scoreService";
 import { loadResources } from "./services/resourceService";
-import { loadGrowth, saveGrowth } from "./services/growthService";
 import { ResourcesPage } from "./resources/ResourcesPage";
 import { ReportsPage } from "./reports/ReportsPage";
 import {
@@ -104,7 +101,7 @@ import {
   saveSubmissionStatusToSupabase,
 } from "./services/submissionService";
 
-type Page = "today" | "workspace" | "results" | "growth" | "roster" | "resources" | "reports";
+type Page = "today" | "workspace" | "results" | "roster" | "resources" | "reports";
 type Notice = { text: string; error?: boolean } | null;
 type ImportProgress = { completed: number; total: number; failed: number };
 type ImportJob = ImportProgress & { id: number; active: boolean; error?: boolean };
@@ -228,13 +225,6 @@ export function App() {
         if (!mounted) return;
         clearTimeout(timeout);
         setState((current) => applyTeacherRoster(current, roster));
-        void loadGrowth(roster.students.map((student) => student.id))
-          .then((growth) => {
-            if (mounted) setState((current) => ({ ...current, growth }));
-          })
-          .catch((error) => {
-            if (mounted) setNotice({ text: error instanceof Error ? error.message : "โหลดข้อมูลการเติบโตไม่สำเร็จ", error: true });
-          });
       })
       .catch((error) => {
         clearTimeout(timeout);
@@ -302,13 +292,6 @@ export function App() {
           profile,
         ],
       }));
-      void loadGrowth([profile.id])
-        .then((growth) => {
-          if (mounted) setState((current) => ({ ...current, growth }));
-        })
-        .catch((error) => {
-          if (mounted) setNotice({ text: error instanceof Error ? error.message : "โหลดข้อมูลการเติบโตไม่สำเร็จ", error: true });
-        });
     }).catch((error) => {
       clearTimeout(timeout);
       if (mounted) setStudentLoadError(error instanceof Error ? error.message : "โหลดข้อมูลนักเรียนไม่สำเร็จ");
@@ -753,7 +736,6 @@ export function App() {
     { key: "resources" as Page, title: role === "teacher" ? "สื่อและประกาศ" : "สื่อการเรียนรู้", icon: BookOpen },
   ];
   const moreMenu = [
-    { key: "growth" as Page, title: "การเติบโต", icon: Sprout },
     ...(role === "teacher" ? [
       { key: "reports" as Page, title: "รายงาน", icon: File },
       { key: "roster" as Page, title: "ห้องเรียน", icon: Users },
@@ -832,7 +814,7 @@ export function App() {
               <span>{item.title}</span>
             </button>
           ))}
-          <button
+          {moreMenu.length > 0 && <button
             className={moreOpen ? "active" : ""}
             aria-expanded={moreOpen}
             aria-label="เมนูเพิ่มเติม"
@@ -841,9 +823,9 @@ export function App() {
           >
             <MoreHorizontal size={21} />
             <span>เพิ่มเติม</span>
-          </button>
+          </button>}
         </nav>
-        {moreOpen && (
+        {moreOpen && moreMenu.length > 0 && (
           <div className="more-menu" role="menu" aria-label="เมนูเพิ่มเติม">
             {moreMenu.map((item) => (
               <button
@@ -878,21 +860,6 @@ export function App() {
               setState(next);
             }}
             onNotice={(text, error) => setNotice({ text, error })}
-          />
-        ) : page === "growth" ? (
-          <GrowthPage
-            state={state}
-            teacher={role === "teacher"}
-            studentId={studentId}
-            onSave={(growth, message) => {
-              const saved = commit({ ...state, growth }, message);
-              if (saved && identity?.profile.role === "teacher") {
-                void saveGrowth(identity.profile.id, growth).catch((error) => {
-                  setNotice({ text: error instanceof Error ? error.message : "บันทึกข้อมูลการเติบโตไม่สำเร็จ", error: true });
-                });
-              }
-              return saved;
-            }}
           />
         ) : role === "teacher" ? (
           page === "roster" ? (

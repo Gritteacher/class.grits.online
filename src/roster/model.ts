@@ -1,5 +1,4 @@
 import type { State, Student } from "../model";
-import { defaultAvatar } from "../growth/model";
 import { gradeEntries } from "../grading/model";
 
 export function orderedRooms(rooms: string[]) {
@@ -144,13 +143,6 @@ export function saveStudent(
     students: existing
       ? state.students.map((s) => (s.id === id ? student : s))
       : [...state.students, student],
-    growth:
-      !existing && state.growth
-        ? {
-            ...state.growth,
-            avatars: { ...state.growth.avatars, [student.id]: defaultAvatar() },
-          }
-        : state.growth,
   };
 }
 
