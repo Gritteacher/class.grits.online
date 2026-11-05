@@ -1,0 +1,28 @@
+<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div>
+<script type="module">
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { TeacherHome } from '../src/Teacher';
+import { emptyState } from '../src/model';
+import '../src/styles.css';
+import '../src/shell.css';
+const rooms = ['ม.6/1', 'ม.6/10', 'ม.6/2'];
+const students = ['ม.6/1','ม.6/1','ม.6/2','ม.6/10'].map((room,index) => ({ id: `s${index+1}`, room, name: `นักเรียน ${index+1}`, code: `${index+1}`, number: index+1, status: 'active' }));
+const base = { description: 'เขียนคำตอบและยกตัวอย่างจากชีวิตประจำวัน', rawMax: 10, finalMax: 10, due: '2026-12-01', color: 'teal', category: 'ใบงาน', submissionRequired: true };
+const assignments = [
+  { ...base, id: 'shared', groupId: 'shared', title: 'หน้า 3', rooms: ['ม.6/1','ม.6/2'] },
+  { ...base, id: 'exam', groupId: 'exam', title: 'สอบเก็บคะแนน', rooms: ['ม.6/10'], submissionRequired: false },
+  { ...base, id: 'solo', groupId: 'solo', title: 'วิเคราะห์ความเปลี่ยนแปลงทางสังคมและวัฒนธรรมในชุมชนของนักเรียน', rooms: ['ม.6/1'] },
+];
+const state = { ...emptyState(), rooms, students, assignments,
+  submissions: [ { id: 'p', assignmentId: 'shared', studentId: 's1', status: 'pending' }, { id: 'r', assignmentId: 'shared', studentId: 's3', status: 'reviewed' }, { id: 'fix', assignmentId: 'shared', studentId: 's2', status: 'returned' } ],
+  grades: [{ id: 'g', studentId: 's4', assignmentId: 'exam', raw: 0, source: 'manual', revision: 1 }],
+};
+function Fixture() {
+  const [opened, setOpened] = React.useState('');
+  return React.createElement('div', { className: 'app-shell' }, React.createElement('main', { className: 'main-content' },
+    React.createElement('output', { 'data-testid': 'opened' }, opened),
+    React.createElement(TeacherHome, { state, onNew: () => {}, onOpen: setOpened })));
+}
+createRoot(document.getElementById('root')).render(React.createElement(Fixture));
+</script></html>

@@ -129,111 +129,60 @@ export function TeacherHome({ state, onOpen, onNew }: Shared) {
           </div>
         </section>
       </div>
-      <div className="section-title spaced">
-        <div>
-          <span className="eyebrow">พื้นที่การเรียนรู้</span>
-          <h2>งานที่กำลังเดินทาง</h2>
+      <section className="teacher-work-section" aria-label="งานที่กำลังเดินทาง">
+        <div className="section-title spaced teacher-work-heading">
+          <div>
+            <span className="eyebrow">พื้นที่การเรียนรู้</span>
+            <h2>งานที่กำลังเดินทาง <span className="work-total">{groups.length} งาน</span></h2>
+          </div>
+          <label className="teacher-work-filter"><Filter size={16} />
+            <select aria-label="กรองงานตามห้อง" value={room} onChange={(event) => setRoom(event.target.value)}>
+              <option value="all">ทุกห้องเรียน</option>
+              {[...new Set(rooms)].sort((a, b) => a.localeCompare(b, "th", { numeric: true })).map((name) =>
+                <option key={name} value={name}>{name}</option>)}
+            </select>
+          </label>
         </div>
-        <div className="room-chips" aria-label="กรองงานตามห้อง">
-          <button
-            className={room === "all" ? "active" : ""}
-            onClick={() => setRoom("all")}
-          >
-            ทุกห้อง
-          </button>
-          {rooms.map((r) => (
-            <button
-              key={r}
-              className={room === r ? "active" : ""}
-              onClick={() => setRoom(r)}
-            >
-              {r}
-            </button>
-          ))}
+        <div className="assignment-grid teacher-work-list">
+          {groups.map((group) => {
+            const visible = room === "all" ? group : group.filter((item) => item.rooms.includes(room));
+            const a = visible[0];
+            const groupRooms = room === "all" ? [...new Set(visible.flatMap((item) => item.rooms))] : [room];
+            const groupIds = new Set(visible.map((item) => item.id));
+            const audience = students.filter((student) => groupRooms.includes(student.room) && student.status === "active");
+            const audienceIds = new Set(audience.map((student) => student.id));
+            const all = state.submissions.filter((submission) => groupIds.has(submission.assignmentId) && audienceIds.has(submission.studentId));
+            const completed = audience.filter((student) => {
+              const assignment = visible.find((item) => item.rooms.includes(student.room));
+              return assignment?.submissionRequired === false
+                ? !!getGrade(state, student.id, assignment.id)
+                : all.some((submission) => submission.studentId === student.id);
+            }).length;
+            const waiting = all.filter((submission) => submission.status === "pending").length;
+            const returned = all.filter((submission) => submission.status === "returned").length;
+            const scoreOnly = visible.every((item) => item.submissionRequired === false);
+            const mixed = new Set(visible.map((item) => item.submissionRequired !== false)).size > 1;
+            const progress = audience.length ? Math.min(100, completed / audience.length * 100) : 0;
+            return <button className={`assignment-card work-item ${a.color}`} key={assignmentGroupId(a)} onClick={() => onOpen(a.id)}>
+              <AssignmentIcon assignment={a} small />
+              <div className="work-item-main">
+                <h3>{a.title}</h3>
+                <p className="work-item-description">{a.description}</p>
+                <span className="work-item-rooms" title={groupRooms.join(" · ")}>{a.category} · {groupRooms.length > 2 ? `${groupRooms.length} ห้องเรียน` : groupRooms.join(" · ")}</span>
+              </div>
+              <div className="work-item-due"><span>กำหนดส่ง</span><strong><Clock3 size={14} />{new Set(visible.map((item) => item.due)).size === 1 ? formatDate(a.due) : "ต่างกันตามห้อง"}</strong></div>
+              <div className="work-item-progress">
+                <div className="submission-meter"><span>{mixed ? "บันทึกแล้ว" : scoreOnly ? "มีคะแนน" : "ส่งแล้ว"} <strong>{completed}/{audience.length}</strong></span>
+                  <span className={waiting ? "work-waiting" : ""}>{waiting ? `${waiting} รอตรวจ` : returned ? `${returned} รอแก้ไข` : scoreOnly ? "ครูบันทึกคะแนน" : completed ? "ไม่มีงานรอตรวจ" : "ยังไม่มีงานส่ง"}</span>
+                </div>
+                <div className="meter" role="progressbar" aria-label={`ความคืบหน้า ${a.title}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}><span style={{ width: `${progress}%` }} /></div>
+              </div>
+              <ChevronRight className="work-item-arrow" size={18} />
+            </button>;
+          })}
         </div>
-      </div>
-      <div className="assignment-grid">
-        {groups.map((group) => {
-          const a =
-            (room !== "all" &&
-              group.find((item) => item.rooms.includes(room))) ||
-            group[0];
-          const groupRooms = group.map((item) => item.rooms[0]);
-          const groupIds = new Set(group.map((item) => item.id));
-          const assignedCount = students.filter(
-            (s) => groupRooms.includes(s.room) && s.status === "active",
-          ).length;
-          const all = state.submissions.filter((s) =>
-            groupIds.has(s.assignmentId),
-          );
-          const activeSubmitted = students.filter((student) => {
-            if (student.status !== "active") return false;
-            const roomAssignment = group.find((item) =>
-              item.rooms.includes(student.room),
-            );
-            if (!roomAssignment) return false;
-            return roomAssignment.submissionRequired === false
-              ? !!getGrade(state, student.id, roomAssignment.id)
-              : all.some((submission) => submission.studentId === student.id);
-          }).length;
-          const waiting = all.filter((s) => s.status === "pending").length;
-          const methods = new Set(
-            group.map((item) => item.submissionRequired !== false),
-          );
-          return (
-            <button
-              className={`assignment-card ${a.color}`}
-              onClick={() => onOpen(a.id)}
-              key={assignmentGroupId(a)}
-            >
-              <div className="card-top">
-                <AssignmentIcon assignment={a} />
-                <span className="category">{a.category}</span>
-              </div>
-              <h3>{a.title}</h3>
-              <p>{groupRooms.join(" · ")}</p>
-              <div className="submission-meter">
-                <span>
-                  {methods.size > 1
-                    ? "บันทึกแล้ว"
-                    : a.submissionRequired === false
-                      ? "มีคะแนน"
-                      : "ส่งแล้ว"}{" "}
-                  <strong>
-                    {activeSubmitted}/{assignedCount}
-                  </strong>
-                </span>
-                <span>
-                  {methods.size > 1
-                    ? `${waiting} รอตรวจ`
-                    : a.submissionRequired === false
-                      ? "ครูบันทึก"
-                      : `${waiting} รอตรวจ`}
-                </span>
-              </div>
-              <div className="meter">
-                <span
-                  style={{
-                    width: `${assignedCount ? (activeSubmitted / assignedCount) * 100 : 0}%`,
-                  }}
-                />
-              </div>
-              <div className="card-footer">
-                <span>
-                  <Clock3 size={14} />
-                  {new Set(group.map((item) => item.due)).size === 1
-                    ? formatDate(a.due)
-                    : "กำหนดส่งต่างกัน"}
-                </span>
-                <span>
-                  เปิดพื้นที่งาน
-                  <ArrowRight size={16} />
-                </span>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+        {!groups.length && <Empty>{room === "all" ? "ยังไม่มีงานที่มอบหมาย" : "ยังไม่มีงานสำหรับห้องนี้"}</Empty>}
+      </section>
       <div className="teacher-footer-note">
         <span className="note-symbol">
           <CheckCheck size={21} />
