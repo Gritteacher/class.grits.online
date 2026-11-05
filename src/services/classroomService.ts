@@ -116,6 +116,7 @@ export async function loadTeacherRoster(teacherId: string): Promise<TeacherRoste
     return [
       {
         id: profile.id,
+        classroomId: member.classroom_id,
         code: profile.student_code || profile.id.slice(0, 8),
         name: profile.display_name || "ยังไม่ระบุชื่อ",
         room,
@@ -256,8 +257,9 @@ export async function removeStudentsFromClassroom(
 export async function removeClassroomFromSupabase(
   teacherId: string,
   roomName: string,
+  selectedClassroomId?: string,
 ) {
-  const classroomId = await getTeacherClassroomId(teacherId, roomName);
+  const classroomId = await getTeacherClassroomId(teacherId, roomName, selectedClassroomId);
   const { count: memberCount, error: memberError } = await supabase
     .from("classroom_members")
     .select("student_id", { count: "exact", head: true })
@@ -295,10 +297,10 @@ export async function removeClassroomFromSupabase(
   }
 }
 
-export async function renameClassroomInSupabase(teacherId: string, previousName: string, nextName: string) {
+export async function renameClassroomInSupabase(teacherId: string, previousName: string, nextName: string, selectedClassroomId?: string) {
   const name = nextName.trim().replace(/\s+/g, " ");
   if (!name || name.length > 120) throw new Error("กรอกชื่อห้องเรียนไม่เกิน 120 ตัวอักษร");
-  const classroomId = await getTeacherClassroomId(teacherId, previousName);
+  const classroomId = await getTeacherClassroomId(teacherId, previousName, selectedClassroomId);
   const { data: duplicates, error: lookupError } = await supabase
     .from("classrooms").select("id").eq("teacher_id", teacherId).eq("name", name).neq("id", classroomId);
   if (lookupError) throw new Error("ตรวจสอบชื่อห้องเรียนไม่สำเร็จ กรุณาลองใหม่");
@@ -312,13 +314,20 @@ export async function renameClassroomInSupabase(teacherId: string, previousName:
   }
 }
 
-export async function getTeacherClassroomId(teacherId: string, roomName: string) {
+export async function getTeacherClassroomId(teacherId: string, roomName: string, selectedClassroomId?: string) {
   const { data, error } = await supabase
     .from("classrooms")
     .select("id, name, room")
     .eq("teacher_id", teacherId);
   if (error) throw new Error(`ค้นหาห้องเรียนไม่สำเร็จ (${error.code || "network"}) กรุณาลองใหม่`);
   const rows = (data ?? []) as { id: string; name: string; room: string }[];
+  if (selectedClassroomId) {
+    const selected = rows.find((row) => row.id === selectedClassroomId);
+    if (!selected || (selected.name || selected.room) !== roomName) {
+      throw new Error("ห้องเรียนที่เลือกมีการเปลี่ยนแปลงหรือไม่มีสิทธิ์ กรุณาโหลดรายชื่อใหม่");
+    }
+    return selected.id;
+  }
   const exact = rows.filter((row) => (row.name || row.room) === roomName);
   const matches = exact.length ? exact : rows.filter((row) => row.room === roomName);
   if (matches.length > 1) {
@@ -336,6 +345,9 @@ export function applyTeacherRoster(state: State, roster: TeacherRoster): State {
   return {
     ...state,
     rooms,
+    classrooms: roster.classrooms.map((classroom) => ({
+      id: classroom.id, name: classroom.name || classroom.room, academicYear: classroom.academic_year,
+    })),
     roomSubjects: Object.fromEntries(
       roster.classrooms.map((classroom) => [
         classroom.name || classroom.room,

@@ -21,12 +21,12 @@ import "./roster.css";
 
 type Dialog =
   | { type: "room" }
-  | { type: "renameRoom"; room: string }
+  | { type: "renameRoom"; room: string; classroomId?: string }
   | { type: "import" }
   | { type: "student"; student?: Student }
   | { type: "archive" | "restore"; ids: string[] }
   | { type: "deleteStudents"; ids: string[] }
-  | { type: "removeRoom"; room: string }
+  | { type: "removeRoom"; room: string; classroomId?: string }
   | null;
 type Commit = (state: State, message: string) => boolean;
 type PersistStudent = (
@@ -40,7 +40,7 @@ type PersistStatus = (
   status: Student["status"],
 ) => Promise<State>;
 type PersistDeletion = (next: State, ids: string[]) => Promise<State>;
-type PersistRoomDeletion = (next: State, room: string) => Promise<State>;
+type PersistRoomDeletion = (next: State, room: string, classroomId?: string) => Promise<State>;
 type ResetStudentPassword = (studentId: string, password: string) => Promise<void>;
 
 export function RosterPage({
@@ -69,7 +69,7 @@ export function RosterPage({
   onPersistStatus?: PersistStatus;
   onPersistDeletion?: PersistDeletion;
   onPersistRoomDeletion?: PersistRoomDeletion;
-  onRenameRoom?: (previousName: string, name: string) => Promise<void>;
+  onRenameRoom?: (previousName: string, name: string, classroomId?: string) => Promise<void>;
   onResetStudentPassword?: ResetStudentPassword;
 }) {
   const [room, setRoom] = useState(state.rooms[0] ?? "");
@@ -80,13 +80,17 @@ export function RosterPage({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const selectAll = useRef<HTMLInputElement>(null);
-  const currentRoom = state.rooms.includes(room)
-    ? room
-    : (state.rooms[0] ?? "");
+  const roomOptions = state.classrooms ?? state.rooms.map((name) => ({ id: name, name, academicYear: "" }));
+  const currentClassroom = roomOptions.find((item) => item.id === room)
+    ?? roomOptions.find((item) => item.name === room) ?? roomOptions[0];
+  const currentRoom = currentClassroom?.name ?? "";
+  const currentClassroomId = state.classrooms ? currentClassroom?.id : undefined;
+  const isMember = (student: Student, id: string, name: string) =>
+    state.classrooms && student.classroomId ? student.classroomId === id : student.room === name;
   const roster = state.students
     .filter(
       (s) =>
-        s.room === currentRoom &&
+        isMember(s, currentClassroom?.id ?? "", currentRoom) &&
         s.status === status &&
         `${s.name} ${s.code} ${s.number}`
           .toLocaleLowerCase()
@@ -112,7 +116,7 @@ export function RosterPage({
       if (!dialog) return;
       let next =
         dialog.type === "removeRoom"
-          ? removeRoom(state, dialog.room)
+          ? dialog.classroomId && onPersistRoomDeletion ? state : removeRoom(state, dialog.room)
           : dialog.type === "archive" || dialog.type === "restore"
             ? setRosterStatus(
                 state,
@@ -133,7 +137,7 @@ export function RosterPage({
         next = await onPersistDeletion(next, dialog.ids);
       }
       if (next && dialog.type === "removeRoom" && onPersistRoomDeletion) {
-        next = await onPersistRoomDeletion(next, dialog.room);
+        next = await onPersistRoomDeletion(next, dialog.room, dialog.classroomId);
       }
       if (
         next &&
@@ -176,24 +180,26 @@ export function RosterPage({
       <div className="roster-layout">
         <aside className="roster-rooms" aria-label="ห้องเรียนในรายชื่อ">
           <h2>ห้องของคุณ</h2>
-          {state.rooms.map((r) => (
+          {roomOptions.map((option, index) => (
             <button
-              key={r}
-              className={`roster-room ${r === currentRoom ? "active" : ""}`}
-              aria-pressed={r === currentRoom}
+              key={option.id}
+              className={`roster-room ${option.id === currentClassroom?.id ? "active" : ""}`}
+              aria-pressed={option.id === currentClassroom?.id}
               onClick={() => {
-                setRoom(r);
+                setRoom(option.id);
                 setSelected([]);
                 setQuery("");
               }}
             >
               <Users size={20} />
               <span>
-                <strong>{r}</strong>
+                <strong>{option.name}</strong>
+                {roomOptions.filter((item) => item.name === option.name).length > 1 &&
+                  <small>ชื่อซ้ำ · รายการที่ {index + 1}{option.academicYear ? ` · ปี ${option.academicYear}` : ""}</small>}
                 <small>
                   {
                     state.students.filter(
-                      (s) => s.room === r && s.status === "active",
+                      (s) => isMember(s, option.id, option.name) && s.status === "active",
                     ).length
                   }{" "}
                   คน
@@ -214,7 +220,7 @@ export function RosterPage({
                 aria-label="แก้ไขชื่อห้องเรียน"
                 title="แก้ไขชื่อห้องเรียน"
                 disabled={!currentRoom}
-                onClick={() => open({ type: "renameRoom", room: currentRoom })}
+                onClick={() => open({ type: "renameRoom", room: currentRoom, classroomId: currentClassroomId })}
               ><Pencil size={18} /></button>}
               <button
                 className="button neutral"
@@ -229,7 +235,7 @@ export function RosterPage({
                 aria-label="ลบห้องเรียนนี้"
                 title="ลบห้องว่าง"
                 disabled={!currentRoom}
-                onClick={() => open({ type: "removeRoom", room: currentRoom })}
+                onClick={() => open({ type: "removeRoom", room: currentRoom, classroomId: currentClassroomId })}
               >
                 <Trash2 size={18} />
               </button>
@@ -381,8 +387,8 @@ export function RosterPage({
         <RenameRoomForm
           room={dialog.room}
           onSave={async (name) => {
-            await onRenameRoom(dialog.room, name);
-            setRoom(name);
+            await onRenameRoom(dialog.room, name, dialog.classroomId);
+            setRoom(dialog.classroomId ?? name);
             setSelected([]);
             setQuery("");
             setDialog(null);

@@ -5,6 +5,7 @@ import { SourceTextModule, SyntheticModule } from "node:vm";
 
 let responses = [];
 let updates = [];
+let filters = [];
 const client = {
   from(table) {
     const expected = responses.shift();
@@ -14,6 +15,7 @@ const client = {
         if (key === "then") return (resolve) => resolve(expected.result);
         return (...args) => {
           if (key === "update") updates.push(args[0]);
+          if (key === "eq") filters.push([table, ...args]);
           if (key === "eq" && args[0] === "teacher_id") assert.equal(args[1], "teacher");
           return chain;
         };
@@ -41,6 +43,24 @@ responses = [lookup()];
 await assert.rejects(getTeacherClassroomId("teacher", "1"), /ซ้ำ/);
 const state = applyTeacherRoster({}, { classrooms: rooms, students: [] });
 assert.deepEqual(state.rooms, ["ม.6/1", "ม.5/1"]);
+const duplicates = [{ id: "r1", name: "ม.6/1", room: "1" }, { id: "r2", name: "ม.6/1", room: "1" }];
+responses = [{ table: "classrooms", result: { data: duplicates, error: null } }];
+assert.equal(await getTeacherClassroomId("teacher", "ม.6/1", "r2"), "r2");
+responses = [lookup()];
+await assert.rejects(getTeacherClassroomId("teacher", "ม.6/1", "foreign-room"), /ไม่มีสิทธิ์/);
+filters = [];
+responses = [{ table: "classrooms", result: { data: duplicates, error: null } }, ...[
+  "classroom_members", "assignment_classrooms", "material_classrooms", "announcements",
+].map((table) => ({ table, result: { count: 0, error: null } })),
+{ table: "classrooms", result: { data: { id: "r2" }, error: null } }];
+await removeClassroomFromSupabase("teacher", "ม.6/1", "r2");
+assert.deepEqual(filters.filter(([, key]) => key === "classroom_id").map(([, , id]) => id), ["r2", "r2", "r2", "r2"]);
+assert.ok(filters.some(([table, key, value]) => table === "classrooms" && key === "id" && value === "r2"));
+assert.ok(!filters.some(([, key, value]) => key === "id" && value === "r1"));
+responses = [{ table: "classrooms", result: { data: duplicates, error: null } },
+{ table: "classroom_members", result: { count: 1, error: null } }];
+await assert.rejects(removeClassroomFromSupabase("teacher", "ม.6/1", "r1"), /ยังมีรายชื่อ/);
+assert.equal(responses.length, 0);
 for (const deleted of [null, { id: "r1" }]) {
   responses = [lookup(), ...[
     "classroom_members", "assignment_classrooms", "material_classrooms", "announcements",

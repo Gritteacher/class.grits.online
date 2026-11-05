@@ -47,6 +47,7 @@ export type Student = {
   number: number;
   status: "active" | "archived";
   subject?: string;
+  classroomId?: string;
 };
 export type Assignment = {
   id: string;
@@ -102,6 +103,7 @@ export type State = {
   version: 1;
   rooms: Room[];
   roomSubjects?: Record<Room, string>;
+  classrooms?: { id: string; name: string; academicYear: string }[];
   students: Student[];
   assignments: Assignment[];
   submissions: Submission[];

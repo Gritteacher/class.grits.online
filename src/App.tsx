@@ -504,23 +504,26 @@ export function App() {
     const roster = await loadTeacherRoster(identity.profile.id);
     return applyTeacherRoster(next, roster);
   }
-  async function persistRoomRename(previousName: string, name: string): Promise<void> {
+  async function persistRoomRename(previousName: string, name: string, classroomId?: string): Promise<void> {
     if (!identity || identity.profile.role !== "teacher") throw new Error("กรุณาเข้าสู่ระบบครูก่อน");
-    renameRoom(state, previousName, name);
-    await renameClassroomInSupabase(identity.profile.id, previousName, name);
+    if (!classroomId) renameRoom(state, previousName, name);
+    await renameClassroomInSupabase(identity.profile.id, previousName, name, classroomId);
+    const [roster, work, resources] = await Promise.all([
+      loadTeacherRoster(identity.profile.id), loadWork(identity.profile.id, "teacher"), loadResources(identity.profile.id, "teacher"),
+    ]);
     setState((current) => {
-      const next = renameRoom(current, previousName, name);
+      const next = { ...applyWorkData(applyTeacherRoster(current, roster), work), ...resources };
       persist(next);
       return next;
     });
     setNotice({ text: "แก้ไขชื่อห้องเรียนแล้ว" });
   }
-  async function persistRoomDeletion(next: State, room: string): Promise<State> {
+  async function persistRoomDeletion(next: State, room: string, classroomId?: string): Promise<State> {
     if (!identity || identity.profile.role !== "teacher")
       throw new Error("กรุณาเข้าสู่ระบบครูก่อน");
-    await removeClassroomFromSupabase(identity.profile.id, room);
+    await removeClassroomFromSupabase(identity.profile.id, room, classroomId);
     const roster = await loadTeacherRoster(identity.profile.id);
-    if (roster.classrooms.some((classroom) => (classroom.name || classroom.room) === room)) {
+    if (roster.classrooms.some((classroom) => classroomId ? classroom.id === classroomId : (classroom.name || classroom.room) === room)) {
       throw new Error("ยังพบห้องเรียนนี้หลังลบ กรุณาโหลดรายชื่อใหม่แล้วตรวจสอบอีกครั้ง");
     }
     return applyTeacherRoster(next, roster);

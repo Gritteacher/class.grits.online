@@ -1,0 +1,24 @@
+<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div>
+<script type="module">
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { RosterPage } from '../src/roster/RosterPage';
+import { emptyState } from '../src/model';
+import '../src/styles.css';
+function Fixture() {
+  const [deleted, setDeleted] = React.useState('');
+  const [state, setState] = React.useState({ ...emptyState(), rooms: ['ม.6/1', 'ม.6/1', 'ม.6/1'],
+    classrooms: ['r1', 'r2', 'r3'].map((id) => ({ id, name: 'ม.6/1', academicYear: '2569' })),
+    students: [{ id: 'student', classroomId: 'r1', name: 'นักเรียนห้องเดิม', code: '00001', number: 1, room: 'ม.6/1', status: 'active' }] });
+  return React.createElement(React.Fragment, null,
+    React.createElement('output', { 'data-testid': 'deleted' }, deleted),
+    React.createElement(RosterPage, { state, onSave: (next) => { setState(next); return true; },
+      onPersistRoomDeletion: async (next, name, id) => {
+        if (id === 'r1') throw Error('ลบไม่ได้ เพราะห้องนี้ยังมีรายชื่ออยู่');
+        const classrooms = next.classrooms.filter((item) => item.id !== id);
+        setDeleted(id);
+        return { ...next, classrooms, rooms: classrooms.map((item) => item.name) };
+      } }));
+}
+createRoot(document.getElementById('root')).render(React.createElement(Fixture));
+</script></html>
