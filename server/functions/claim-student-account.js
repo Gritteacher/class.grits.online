@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { escapeHtml, sendResendEmail } from "./_shared/resend.js";
+import { studentNameMatches } from "./_shared/student-name.js";
 
 const json = (statusCode, body) => ({
   statusCode,
@@ -11,14 +12,6 @@ const json = (statusCode, body) => ({
   },
   body: JSON.stringify(body),
 });
-
-function normalizeName(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/^(นาย|นางสาว|นาง|เด็กชาย|เด็กหญิง)\s*/u, "")
-    .replace(/[\s._-]+/g, "");
-}
 
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") return json(204, {});
@@ -62,7 +55,7 @@ export async function handler(event) {
     return json(400, { field: "studentCode", error: "ไม่พบรหัสนักเรียนนี้ในรายชื่อที่ครูเตรียมไว้" });
   }
   if (profile.student_claimed_at || profile.recovery_email) return json(400, { field: "studentCode", error: "บัญชีนี้สมัครใช้งานแล้ว ให้เข้าสู่ระบบแทน" });
-  if (normalizeName(profile.display_name) !== normalizeName(`${firstName}${lastName}`)) {
+  if (!studentNameMatches(profile.display_name, firstName, lastName)) {
     return json(400, { field: "name", error: "ชื่อหรือนามสกุลไม่ตรงกับรายชื่อ กรุณาตรวจตัวสะกดอีกครั้ง และไม่ต้องใส่คำนำหน้า" });
   }
 
