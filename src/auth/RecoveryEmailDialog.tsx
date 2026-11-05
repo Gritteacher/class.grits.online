@@ -42,7 +42,7 @@ export function RecoveryEmailDialog({
         </div>
         <div className="modal-actions">
           <button type="button" className="button neutral" onClick={onClose}>ไว้ภายหลัง</button>
-          <button className="button teal" disabled={busy}><Mail size={17} />{busy ? "กำลังบันทึก..." : "บันทึกอีเมล"}</button>
+          <button className="button teal" disabled={busy} aria-busy={busy}>{busy ? <span className="loading-spinner" aria-hidden="true" /> : <Mail size={17} />}{busy ? "กำลังบันทึก..." : "บันทึกอีเมล"}</button>
         </div>
       </form>
     </Modal>

@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import type { Assignment } from "./model";
+import { ActivityStatus } from "./components/ActivityStatus";
 
 export function Modal({
   title,
@@ -60,6 +61,7 @@ export function Modal({
           <X />
         </button>
       </div>
+      <ActivityStatus inline />
       {children}
     </dialog>,
     document.body,

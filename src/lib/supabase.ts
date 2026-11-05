@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { trackedFetch } from "./activity";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -10,6 +11,7 @@ if (!supabaseUrl || !supabasePublishableKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
+  global: { fetch: trackedFetch },
   auth: {
     persistSession: true,
     autoRefreshToken: true,

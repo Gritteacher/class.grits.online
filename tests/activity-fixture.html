@@ -1,0 +1,33 @@
+<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div>
+<script type="module">
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { ActivityStatus } from '../src/components/ActivityStatus';
+import { FilePreview } from '../src/components/FilePreview';
+import { trackedFetch } from '../src/lib/activity';
+import { Modal } from '../src/ui';
+import '../src/styles.css';
+function Fixture() {
+  const [modal, setModal] = React.useState(false);
+  const [result, setResult] = React.useState('');
+  async function run(upload = false) {
+    setResult('');
+    try {
+      const response = await trackedFetch(upload ? '/storage/v1/object/test/file.png' : '/activity-test-data',
+        upload ? { method: 'POST', body: new Blob(['test']) } : undefined);
+      if (!response.ok) throw Error('Failed');
+      setResult('เสร็จแล้ว');
+    } catch { setResult('ไม่สำเร็จ'); }
+  }
+  const buttons = React.createElement('div', { className: 'form-stack' },
+    React.createElement('button', { className: 'button teal', onClick: () => run(false) }, 'โหลดข้อมูล'),
+    React.createElement('button', { className: 'button gold', onClick: () => run(true) }, 'อัปโหลดไฟล์'),
+    React.createElement('p', { 'data-testid': 'result' }, result));
+  return React.createElement(React.Fragment, null,
+    React.createElement(ActivityStatus), buttons,
+    React.createElement('button', { onClick: () => setModal(true) }, 'เปิดหน้าต่าง'),
+    React.createElement(FilePreview, { file: { name: 'test.png', type: 'image/png', data: location.origin + '/activity-image.png' }, onOpen: () => {} }),
+    modal && React.createElement(Modal, { title: 'อัปโหลด', onClose: () => setModal(false) }, buttons));
+}
+createRoot(document.getElementById('root')).render(React.createElement(Fixture));
+</script></html>

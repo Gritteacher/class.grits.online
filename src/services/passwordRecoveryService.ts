@@ -1,3 +1,5 @@
+import { trackedFetch as fetch } from "../lib/activity";
+
 export async function requestStudentPasswordReset(studentCode: string, email: string) {
   const response = await fetch("/api/request-student-password-reset", {
     method: "POST",

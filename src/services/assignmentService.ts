@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { trackedFetch as fetch } from "../lib/activity";
 import type { Assignment, Submission } from "../model";
 
 function isoOrNull(value?: string) {

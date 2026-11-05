@@ -652,11 +652,14 @@ function StudentForm({
     number: student ? String(student.number) : "",
   });
   const [newPassword, setNewPassword] = useState("");
+  const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState("");
   const [error, setError] = useState("");
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     try {
       const next = saveStudent(
         state,
@@ -671,6 +674,8 @@ function StudentForm({
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "บันทึกรายชื่อไม่สำเร็จ");
+    } finally {
+      setSaving(false);
     }
   }
   async function resetPassword() {
@@ -740,6 +745,7 @@ function StudentForm({
               </label>
               <button type="button" className="button neutral" disabled={resetting} onClick={() => void resetPassword()}>
                 <KeyRound size={16} />
+                {resetting && <span className="loading-spinner" aria-hidden="true" />}
                 {resetting ? "กำลังตั้งรหัส..." : "บันทึกรหัสผ่านใหม่"}
               </button>
               {resetError && <p className="form-error" role="alert">{resetError}</p>}
@@ -783,9 +789,9 @@ function StudentForm({
           <button type="button" className="button neutral" onClick={onClose}>
             ยกเลิก
           </button>
-          <button className="button teal">
-            <Check size={17} />
-            บันทึกรายชื่อ
+          <button className="button teal" disabled={saving} aria-busy={saving}>
+            {saving ? <span className="loading-spinner" aria-hidden="true" /> : <Check size={17} />}
+            {saving ? "กำลังบันทึก" : "บันทึกรายชื่อ"}
           </button>
         </div>
       </form>

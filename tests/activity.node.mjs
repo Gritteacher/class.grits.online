@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { stripTypeScriptTypes } from 'node:module';
+import { SourceTextModule } from 'node:vm';
+const source = await readFile(new URL('../src/lib/activity.ts', import.meta.url), 'utf8');
+const module = new SourceTextModule(stripTypeScriptTypes(source));
+await module.link(() => {});
+await module.evaluate();
+const { trackedFetch, getActivity, subscribeActivity } = module.namespace;
+const original = globalThis.fetch;
+const pending = [];
+globalThis.fetch = () => new Promise((resolve, reject) => pending.push({ resolve, reject }));
+let notices = 0;
+const unsubscribe = subscribeActivity(() => notices++);
+try {
+  const read = trackedFetch('https://example.test/data');
+  const upload = trackedFetch('https://example.test/storage/v1/object/files/test.pdf', { method: 'POST', body: new Blob(['file']) });
+  assert.deepEqual(getActivity(), { total: 2, loading: 1, saving: 0, uploading: 1 });
+  pending[0].resolve(new Response('{}'));
+  await read;
+  assert.equal(getActivity().total, 1);
+  const failure = assert.rejects(upload, /offline/);
+  pending[1].reject(new Error('offline'));
+  await failure;
+  assert.equal(getActivity().total, 0);
+  const write = trackedFetch(new Request('https://example.test/api/save', { method: 'POST' }));
+  assert.equal(getActivity().saving, 1);
+  pending[2].resolve(new Response('denied', { status: 403 }));
+  assert.equal((await write).status, 403);
+  assert.equal(getActivity().total, 0);
+  assert.equal(notices, 6);
+  console.log('Passed: concurrent requests, upload detection, errors, HTTP failures and activity cleanup.');
+} finally { unsubscribe(); globalThis.fetch = original; }

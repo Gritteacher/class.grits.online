@@ -218,7 +218,7 @@ export function PreviewLogin({
           {resetNotice && <p className="preview-success" role="status">{resetNotice}</p>}
           <button className="button gold preview-enter" type="submit" disabled={busy}>
             {busy ? "กำลังตรวจสอบ..." : forgotMode ? "ส่งลิงก์ตั้งรหัสผ่าน" : studentSignup ? "สมัครใช้งานนักเรียน" : role === "teacher" ? "เข้าสู่ระบบครู" : "เข้าสู่ระบบนักเรียน"}
-            <ArrowRight size={18} />
+            {busy ? <span className="loading-spinner" aria-hidden="true" /> : <ArrowRight size={18} />}
           </button>
           {!isTeacher && !studentSignup && !forgotMode && (
             <div className="preview-auth-links">

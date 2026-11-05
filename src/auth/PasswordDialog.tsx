@@ -26,7 +26,7 @@ export function PasswordDialog({ onClose, onSaved }: { onClose: () => void; onSa
           <label>ยืนยันรหัสผ่านใหม่<input type="password" minLength={6} autoComplete="new-password" required value={confirmation} onChange={(e) => setConfirmation(e.target.value)} /></label>
           {error && <p className="form-error" role="alert">{error}</p>}
         </div>
-        <div className="modal-actions"><button type="button" className="button neutral" onClick={onClose}>ยกเลิก</button><button className="button teal" disabled={busy}><KeyRound size={17} />{busy ? "กำลังบันทึก..." : "เปลี่ยนรหัสผ่าน"}</button></div>
+        <div className="modal-actions"><button type="button" className="button neutral" disabled={busy} onClick={onClose}>ยกเลิก</button><button className="button teal" disabled={busy} aria-busy={busy}>{busy ? <span className="loading-spinner" aria-hidden="true" /> : <KeyRound size={17} />}{busy ? "กำลังบันทึก..." : "เปลี่ยนรหัสผ่าน"}</button></div>
       </form>
     </Modal>
   );

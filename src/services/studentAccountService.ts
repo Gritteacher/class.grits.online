@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { trackedFetch as fetch } from "../lib/activity";
 
 export class StudentSignupError extends Error {
   constructor(public field: "studentCode" | "firstName" | "lastName" | "name" | "email" | "password", message: string) {

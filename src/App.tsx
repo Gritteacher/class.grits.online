@@ -1938,7 +1938,7 @@ function SubmitWork({
           )}
           {kind === "file" && (
             <label className="upload-area">
-              <Upload size={26} />
+              {reading ? <span className="loading-spinner" aria-hidden="true" /> : <Upload size={26} />}
               <strong>
                 {reading
                   ? "กำลังอ่านไฟล์..."
@@ -1975,8 +1975,8 @@ function SubmitWork({
             <ArrowLeft size={17} />
             กลับไปแก้ต่อ
           </button>
-          <button className="button gold" type="submit" disabled={reading || submitting}>
-            <Send size={17} />
+          <button className="button gold" type="submit" disabled={reading || submitting} aria-busy={submitting}>
+            {submitting ? <span className="loading-spinner" aria-hidden="true" /> : <Send size={17} />}
             {submitting ? "กำลังส่ง..." : "ยืนยันส่งงาน"}
           </button>
         </div>

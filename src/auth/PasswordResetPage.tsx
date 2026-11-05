@@ -63,7 +63,7 @@ export function PasswordResetPage({ token }: { token: string }) {
             </div>
             {error && <p className="form-error" role="alert">{error}</p>}
             <button className="button gold preview-enter" type="submit" disabled={busy}>
-              {busy ? "กำลังบันทึก..." : "บันทึกรหัสผ่านใหม่"} <ArrowRight size={18} />
+              {busy ? "กำลังบันทึก..." : "บันทึกรหัสผ่านใหม่"} {busy ? <span className="loading-spinner" aria-hidden="true" /> : <ArrowRight size={18} />}
             </button>
           </form>
         )}
