@@ -39,7 +39,7 @@ export function TeacherHome({ state, onOpen, onNew }: Shared) {
     (group) => room === "all" || group.some((a) => a.rooms.includes(room)),
   );
   return (
-    <>
+    <div className="teacher-home">
       <div className="page-heading">
         <div>
           <p className="eyebrow">พฤหัสบดี 24 กันยายน · ภาคเรียน 1/2569</p>
@@ -92,6 +92,7 @@ export function TeacherHome({ state, onOpen, onNew }: Shared) {
               {students.filter((s) => s.status === "active").length} คน
             </span>
           </div>
+          <div className="overview-classrooms">
           {rooms.map((r, i) => {
             const count = pending.filter(
               (s) => students.find((st) => st.id === s.studentId)?.room === r,
@@ -125,6 +126,7 @@ export function TeacherHome({ state, onOpen, onNew }: Shared) {
               </button>
             );
           })}
+          </div>
         </section>
       </div>
       <div className="section-title spaced">
@@ -252,7 +254,7 @@ export function TeacherHome({ state, onOpen, onNew }: Shared) {
           ไปที่พื้นที่งาน
         </TextLink>
       </div>
-    </>
+    </div>
   );
 }
 

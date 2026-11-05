@@ -1,0 +1,23 @@
+<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div>
+<script type="module">
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { TeacherHome } from '../src/Teacher';
+import { emptyState } from '../src/model';
+import '../src/styles.css';
+import '../src/shell.css';
+const rooms = Array.from({ length: 8 }, (_, i) => `ม.6/${i + 1}`);
+const students = rooms.flatMap((room, index) => Array.from({ length: 35 }, (_, i) => ({
+  id: `s${index}-${i}`, room, number: i + 1, code: `${index}00${i}`, name: 'นักเรียนทดสอบ', status: 'active',
+})));
+const pending = Number(new URLSearchParams(location.search).get('pending') || 0);
+const state = { ...emptyState(), rooms, students,
+  roomSubjects: Object.fromEntries(rooms.map((room) => [room, `ศาสนาสากล ${room}`])),
+  submissions: Array.from({ length: pending }, (_, i) => ({ id: `sub${i}`, studentId: students[i].id, assignmentId: 'work1', status: 'pending' })),
+};
+createRoot(document.getElementById('root')).render(React.createElement('div', { className: 'app-shell' },
+  React.createElement('header', { className: 'site-header' }, React.createElement('div', { className: 'header-inner' },
+    React.createElement('div', { className: 'brand' }, React.createElement('span', { className: 'logo-wrap' },
+      React.createElement('img', { src: '/school-logo.png', alt: '' })), React.createElement('strong', null, 'ห้องเรียนสังคมครูไต๋')))),
+  React.createElement('main', { className: 'main-content' }, React.createElement(TeacherHome, { state, onNew: () => {}, onOpen: () => {} }))));
+</script></html>
