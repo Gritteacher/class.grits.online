@@ -16,6 +16,7 @@ import type { State, Student } from "../model";
 import { Empty, Modal } from "../ui";
 import { addRoom, removeRoom, removeStudents, saveStudent, setRosterStatus } from "./model";
 import { ImportStudents } from "./ImportStudents";
+import { AccountMarkers, AccountStatusRefresh, useAccountStatuses } from "./AccountStatus";
 import type { ImportRow } from "./importModel";
 import "./roster.css";
 
@@ -85,6 +86,8 @@ export function RosterPage({
     ?? roomOptions.find((item) => item.name === room) ?? roomOptions[0];
   const currentRoom = currentClassroom?.name ?? "";
   const currentClassroomId = state.classrooms ? currentClassroom?.id : undefined;
+  const memberKey = state.students.filter(student => student.classroomId === currentClassroomId).map(student => student.id).sort().join(",");
+  const accounts = useAccountStatuses(currentClassroomId, memberKey);
   const isMember = (student: Student, id: string, name: string) =>
     state.classrooms && student.classroomId ? student.classroomId === id : student.room === name;
   const roster = state.students
@@ -250,6 +253,7 @@ export function RosterPage({
             </div>
           </div>
           <div className="roster-filters">
+            {currentClassroomId && <AccountStatusRefresh loading={accounts.loading} onClick={accounts.refresh} />}
             <label className="search-field">
               <Search size={18} />
               <input
@@ -324,6 +328,7 @@ export function RosterPage({
             </button>
           </div>
           <div className="roster-list">
+            {accounts.error && <p role="alert" className="form-error">{accounts.error}</p>}
             {roster.map((s) => (
               <article className="roster-person" key={s.id}>
                 <input
@@ -350,6 +355,7 @@ export function RosterPage({
                     รหัส {s.code}
                     {s.status === "archived" ? " · พักรายชื่อไว้" : ""}
                   </p>
+                  {currentClassroomId && <AccountMarkers status={accounts.statuses[s.id]} loading={accounts.loading} />}
                 </div>
                 <div className="roster-person-actions">
                   <button

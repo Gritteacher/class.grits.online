@@ -146,6 +146,12 @@
   color: var(--muted);
   font-size: 12px;
 }
+.account-markers { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; }
+.account-marker { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 12px; }
+.account-marker svg { flex-shrink: 0; }
+.account-marker.confirmed { color: var(--teal-dark); }
+.account-last-login { flex-basis: 100%; color: var(--muted); font-size: 11px; }
+.roster-person-name .account-status-pending { font-size: 11px; }
 .roster-person-actions {
   display: flex;
   align-items: center;

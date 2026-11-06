@@ -1,5 +1,6 @@
 import { handler as createStudent } from '../server/functions/create-student-account.js';
 import { handler as claimStudent } from '../server/functions/claim-student-account.js';
+import { handler as studentAccountStatus } from '../server/functions/student-account-status.js';
 import { handler as deleteStudent } from '../server/functions/delete-student-account.js';
 import { handler as resetStudent } from '../server/functions/reset-student-password.js';
 import { handler as requestReset } from '../server/functions/request-student-password-reset.js';
@@ -8,6 +9,7 @@ import { handler as createGroup } from '../server/functions/create-group-submiss
 import { handler as cleanup } from '../server/functions/cleanup-submission-files.js';
 
 const handlers = {
+  'student-account-status': studentAccountStatus,
   'create-student-account': createStudent,
   'claim-student-account': claimStudent,
   'delete-student-account': deleteStudent,
