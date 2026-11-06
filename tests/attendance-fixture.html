@@ -1,0 +1,15 @@
+<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>#root {padding:24px} @media(max-width:540px){#root{padding:16px}}</style><div id="root"></div>
+<script type="module">
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AttendancePage } from '../src/attendance/AttendancePage';
+import { emptyState } from '../src/model';
+import { supabase } from '../src/lib/supabase';
+import '../src/styles.css';
+const role = new URLSearchParams(location.search).get('role') || 'teacher';
+const rooms = ['11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222'];
+supabase.auth.getUser = async () => ({ data: { user: { id: role === 'teacher' ? 'teacher' : 's0' } }, error: null });
+const students = ['นักเรียนตัวอย่างชื่อยาวสำหรับทดสอบหน้าจอมือถือ', 'นักเรียนที่ได้รับอนุมัติลา', 'นักเรียนที่ยื่นลาใหม่'].map((name,i) => ({ id: `s${i}`, classroomId: rooms[0], room: 'ม.6/1', name, code: `1000${i}`, number: i+1, status: 'active' }));
+const state = { ...emptyState(), rooms:['ม.6/1','ม.6/1'], classrooms:rooms.map(id=>({id,name:'ม.6/1',academicYear:'2569'})), students: role === 'teacher' ? students : [students[0]] };
+createRoot(document.getElementById('root')).render(React.createElement(AttendancePage,{state,role}));
+</script></html>

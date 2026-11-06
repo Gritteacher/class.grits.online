@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { stripTypeScriptTypes } from 'node:module';
+import { SourceTextModule, SyntheticModule, createContext } from 'node:vm';
+const offsets=[];
+const supabase={from:table=>{
+  assert.equal(table,'attendance_records');
+  let offset=0;
+  const query={select(){return this;},eq(){return this;},gte(){return this;},lt(){return this;},order(){return this;},range(start,end){assert.equal(end-start,999);offset=start;offsets.push(start);return this;},abortSignal(){return Promise.resolve({data:Array.from({length:offset===0?1000:1},(_,i)=>({id:String(offset+i)})),error:null});}};
+  return query;
+}};
+const context=createContext({AbortSignal});
+const dependency=new SyntheticModule(['supabase'],function(){this.setExport('supabase',supabase);},{context});
+const model=new SourceTextModule(stripTypeScriptTypes(readFileSync(new URL('../src/attendance/model.ts',import.meta.url),'utf8')),{context});
+const service=new SourceTextModule(stripTypeScriptTypes(readFileSync(new URL('../src/attendance/service.ts',import.meta.url),'utf8')),{context});
+await service.link(specifier=>specifier.includes('supabase')?dependency:model);
+await service.evaluate();
+const records=await service.namespace.loadAttendance('room','2026-11');
+assert.equal(records.length,1001);
+assert.deepEqual(offsets,[0,1000]);
+assert.equal(new Set(records.map(record=>record.id)).size,1001);
+await assert.rejects(()=>service.namespace.loadAttendance('room','2026-13'));
+await assert.rejects(()=>service.namespace.saveAttendance('room','2099-01-01',1,[{studentId:'s',status:'present',note:''}]));
+await assert.rejects(()=>service.namespace.saveAttendance('room','2026-01-01',0,[{studentId:'s',status:'present',note:''}]));
+await assert.rejects(()=>service.namespace.saveAttendance('room','2026-01-01',1,[{studentId:'s',status:'invalid',note:''}]));
+console.log('Passed month pagination beyond 1000 rows and invalid/future attendance rejection before writes.');

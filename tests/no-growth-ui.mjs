@@ -44,9 +44,12 @@ try {
       await page.getByRole('menuitem', { name: 'ห้องเรียน', exact: true }).click();
       await expect(page.getByText('นักเรียนทดสอบ', { exact: true })).toBeVisible();
     } else {
-      await expect(page.getByRole('button', { name: 'เมนูเพิ่มเติม', exact: true })).toHaveCount(0);
-      await expect(page.locator('.main-nav button')).toHaveCount(4);
+      await expect(page.getByRole('button', { name: 'เมนูเพิ่มเติม', exact: true })).toHaveCount(1);
+      await expect(page.locator('.main-nav button')).toHaveCount(5);
     }
+    await page.getByRole('button', { name: 'เมนูเพิ่มเติม', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'เช็คชื่อและการลา', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'เช็คชื่อและการลา', exact: true })).toBeVisible();
     await expect(page.getByText('การเติบโต', { exact: true })).toHaveCount(0);
     await expect(page.locator('.growth-page')).toHaveCount(0);
     await page.waitForLoadState('networkidle');
@@ -55,7 +58,7 @@ try {
     await page.screenshot({ path: `/tmp/no-growth-${role}-${width}.png`, fullPage: true });
     await page.close();
   }
-  console.log('Passed teacher/student desktop/mobile: growth removed, no growth requests, student four-item dock, teacher reports/roster retained.');
+  console.log('Passed teacher/student desktop/mobile: growth removed, attendance accessible to both roles, teacher reports/roster retained.');
 } finally {
   await browser?.close();
   server.kill('SIGTERM');

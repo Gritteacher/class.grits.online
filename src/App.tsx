@@ -45,6 +45,7 @@ import { SchoolLogo } from "./components/SchoolLogo";
 import { Results, TeacherHome, Workspace } from "./Teacher";
 import { StudentHome } from "./Student";
 import { RosterPage } from "./roster/RosterPage";
+import { AttendancePage } from "./attendance/AttendancePage";
 import { renameRoom } from "./roster/model";
 import {
   availability,
@@ -105,7 +106,7 @@ import {
   saveSubmissionStatusToSupabase,
 } from "./services/submissionService";
 
-type Page = "today" | "workspace" | "results" | "roster" | "resources" | "reports";
+type Page = "today" | "workspace" | "results" | "roster" | "resources" | "reports" | "attendance";
 type Notice = { text: string; error?: boolean } | null;
 type ImportProgress = { completed: number; total: number; failed: number };
 type ImportJob = ImportProgress & { id: number; active: boolean; error?: boolean };
@@ -121,6 +122,7 @@ export function App() {
   const [rosterRetry, setRosterRetry] = useState(0);
   const [loginRole, setLoginRole] = useState<"teacher" | "student">("student");
   const [page, setPage] = useState<Page>("today");
+  const [attendancePending, setAttendancePending] = useState(false);
   const [activeId, setActiveId] = useState("");
   const [dark, setDark] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -324,6 +326,7 @@ export function App() {
     };
   }, [identity?.profile.id, identity?.profile.role]);
   function navigate(next: Page) {
+    if (next !== page && attendancePending && !window.confirm("มีข้อมูลเช็คชื่อที่ยังไม่บันทึกหรือกำลังดำเนินการ ต้องการออกจากหน้านี้หรือไม่?")) return;
     setPage(next);
     setMoreOpen(false);
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -345,6 +348,7 @@ export function App() {
     navigate("today");
   }
   async function leaveAccount() {
+    if (attendancePending && !window.confirm("มีข้อมูลเช็คชื่อที่ยังไม่บันทึกหรือกำลังดำเนินการ ต้องการออกจากระบบหรือไม่?")) return;
     try {
       await signOut();
       setIdentity(null);
@@ -744,6 +748,7 @@ export function App() {
     { key: "resources" as Page, title: role === "teacher" ? "สื่อและประกาศ" : "สื่อการเรียนรู้", icon: BookOpen },
   ];
   const moreMenu = [
+    { key: "attendance" as Page, title: "เช็คชื่อและการลา", icon: CheckCircle2 },
     ...(role === "teacher" ? [
       { key: "reports" as Page, title: "รายงาน", icon: File },
       { key: "roster" as Page, title: "ห้องเรียน", icon: Users },
@@ -855,7 +860,9 @@ export function App() {
           <p>{rosterError}</p>
           <button type="button" onClick={() => setRosterRetry((value) => value + 1)}>โหลดรายชื่อใหม่</button>
         </div>}
-        {page === "reports" && role === "teacher" ? (
+        {page === "attendance" ? (
+          <AttendancePage state={state} role={role} onPendingChange={setAttendancePending} />
+        ) : page === "reports" && role === "teacher" ? (
           <ReportsPage state={state} />
         ) : page === "resources" ? (
           <ResourcesPage
