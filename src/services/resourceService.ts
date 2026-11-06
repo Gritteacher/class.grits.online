@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { compressImage } from "../lib/compressImage";
 import type { Announcement, Material, MaterialDownloadLog, Room } from "../model";
 
 type ClassroomRow = { id: string; room: string; name: string; teacher_id: string };
@@ -156,12 +157,13 @@ export async function createMaterial(input: {
   if (!input.file.type || !(input.file.type === "application/pdf" || input.file.type.startsWith("image/"))) {
     throw new Error("รองรับเฉพาะไฟล์ PDF หรือรูปภาพ");
   }
+  const file = await compressImage(input.file);
   const classrooms = await teacherClassrooms(input.teacherId);
   const selected = classrooms.filter((room) => input.rooms.includes(room.name || room.room));
   if (selected.length !== new Set(input.rooms).size) throw new Error("ไม่พบห้องเรียนที่เลือกครบ");
-  const path = `materials/${input.teacherId}/${crypto.randomUUID()}-${safeFileName(input.file.name)}`;
-  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, input.file, {
-    contentType: input.file.type,
+  const path = `materials/${input.teacherId}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
+  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file, {
+    contentType: file.type,
     upsert: false,
   });
   if (uploadError) throw new Error("อัปโหลดไฟล์สื่อไม่สำเร็จ กรุณาลองใหม่");
@@ -169,8 +171,8 @@ export async function createMaterial(input: {
     title,
     description: input.description.trim(),
     file_path: path,
-    mime_type: input.file.type,
-    file_size: input.file.size,
+    mime_type: file.type,
+    file_size: file.size,
     teacher_id: input.teacherId,
   }).select("id, title, description, file_path, mime_type, file_size, created_at").single<MaterialRow>();
   if (insertError || !row) {

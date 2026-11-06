@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { compressImage } from "./lib/compressImage";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -1816,22 +1817,24 @@ function SubmitWork({
     if (!value) return;
     if (
       !["application/pdf", "image/png", "image/jpeg"].includes(value.type) ||
-      value.size > 2 * 1024 * 1024
+      value.size > (value.type === "application/pdf" ? 2 : 20) * 1024 * 1024
     ) {
-      setError("เลือก PDF, PNG หรือ JPG ขนาดไม่เกิน 2 MB");
+      setError("เลือก PDF ไม่เกิน 2 MB หรือ PNG/JPG ไม่เกิน 20 MB");
       return;
     }
     setReading(true);
     try {
+      const prepared = await compressImage(value);
+      if (prepared.size > 2 * 1024 * 1024) throw new Error("รูปภาพยังมีขนาดเกิน 2 MB หลังย่อ กรุณาเลือกภาพขนาดเล็กลง");
       const data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result));
         reader.onerror = () => reject(new Error("อ่านไฟล์ไม่สำเร็จ"));
-        reader.readAsDataURL(value);
+        reader.readAsDataURL(prepared);
       });
-      setFile({ name: value.name, type: value.type, data });
-    } catch {
-      setError("อ่านไฟล์ไม่สำเร็จ กรุณาลองเลือกใหม่");
+      setFile({ name: prepared.name, type: prepared.type, data });
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "อ่านไฟล์ไม่สำเร็จ กรุณาลองเลือกใหม่");
     } finally {
       setReading(false);
     }
@@ -1945,10 +1948,10 @@ function SubmitWork({
               {reading ? <span className="loading-spinner" aria-hidden="true" /> : <Upload size={26} />}
               <strong>
                 {reading
-                  ? "กำลังอ่านไฟล์..."
+                  ? "กำลังเตรียมไฟล์..."
                   : file?.name || "เลือกไฟล์"}
               </strong>
-              <span>PDF, PNG, JPG · ไม่เกิน 2 MB</span>
+              <span>PDF ไม่เกิน 2 MB · PNG, JPG ไม่เกิน 20 MB</span>
               <input
                 type="file"
                 accept="application/pdf,image/png,image/jpeg"
