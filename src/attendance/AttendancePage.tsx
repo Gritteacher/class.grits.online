@@ -9,6 +9,7 @@ import {
   Plus,
   RefreshCw,
   Save,
+  Search,
   X,
 } from "lucide-react";
 import type { State } from "../model";
@@ -62,6 +63,7 @@ export function AttendancePage({
   const [notice, setNotice] = useState("");
   const [revision, setRevision] = useState(0);
   const [leaveFilter, setLeaveFilter] = useState("pending");
+  const [leaveSearch, setLeaveSearch] = useState("");
   const [newLeave, setNewLeave] = useState(false);
   const [decision, setDecision] = useState<{
     request: LeaveRequest;
@@ -227,10 +229,18 @@ export function AttendancePage({
       setBusy(false);
     }
   }
-  const visibleLeaves =
-    teacher && leaveFilter !== "all"
-      ? leaves.filter((item) => item.status === leaveFilter)
-      : leaves;
+  const visibleLeaves = leaves.filter((item) => {
+    const student = state.students.find(
+      (student) => student.id === item.student_id,
+    );
+    return (
+      (!teacher || leaveFilter === "all" || item.status === leaveFilter) &&
+      (!teacher ||
+        `${student?.name ?? ""} ${student?.code ?? ""} ${item.reason}`
+          .toLocaleLowerCase("th")
+          .includes(leaveSearch.trim().toLocaleLowerCase("th")))
+    );
+  });
   const selectedStatuses =
     pane === "check"
       ? members.map((student) => marks[student.id]?.status).filter(Boolean)
@@ -564,23 +574,16 @@ export function AttendancePage({
                 <div className="attendance-check-actions leave-toolbar">
                   <div className="leave-heading">
                     <h2>{teacher ? "คำขอลาของนักเรียน" : "การลาของฉัน"}</h2>
-                    <p>{leaves.length} คำขอ · รอพิจารณา {leaves.filter((item) => item.status === "pending").length} รายการ</p>
+                    <p>
+                      {leaves.length} คำขอ · รอพิจารณา{" "}
+                      {
+                        leaves.filter((item) => item.status === "pending")
+                          .length
+                      }{" "}
+                      รายการ
+                    </p>
                   </div>
-                  {teacher ? (
-                    <label>
-                      สถานะคำขอ
-                      <select
-                        aria-label="สถานะคำขอลา"
-                        value={leaveFilter}
-                        onChange={(event) => setLeaveFilter(event.target.value)}
-                      >
-                        <option value="pending">รอพิจารณา</option>
-                        <option value="all">ทั้งหมด</option>
-                        <option value="approved">อนุมัติ</option>
-                        <option value="rejected">ไม่อนุมัติ</option>
-                      </select>
-                    </label>
-                  ) : (
+                  {!teacher && (
                     <button
                       className="button teal"
                       onClick={() => {
@@ -592,6 +595,49 @@ export function AttendancePage({
                     </button>
                   )}
                 </div>
+                {teacher && (
+                  <div className="leave-controls">
+                    <div
+                      className="leave-filters"
+                      role="group"
+                      aria-label="สถานะคำขอลา"
+                    >
+                      {(
+                        [
+                          ["pending", "รอพิจารณา"],
+                          ["approved", "อนุมัติ"],
+                          ["rejected", "ไม่อนุมัติ"],
+                          ["all", "ทั้งหมด"],
+                        ] as const
+                      ).map(([key, label]) => (
+                        <button
+                          type="button"
+                          key={key}
+                          aria-pressed={leaveFilter === key}
+                          onClick={() => setLeaveFilter(key)}
+                        >
+                          <span>{label}</span>
+                          <span className="leave-filter-count">
+                            {key === "all"
+                              ? leaves.length
+                              : leaves.filter((item) => item.status === key)
+                                  .length}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    <label className="leave-search">
+                      <Search size={17} aria-hidden="true" />
+                      <input
+                        type="search"
+                        aria-label="ค้นหาคำขอลา"
+                        placeholder="ชื่อหรือรหัสนักเรียน"
+                        value={leaveSearch}
+                        onChange={(event) => setLeaveSearch(event.target.value)}
+                      />
+                    </label>
+                  </div>
+                )}
                 <div className="leave-list">
                   {visibleLeaves.map((item) => (
                     <article
@@ -599,9 +645,21 @@ export function AttendancePage({
                       className={`leave-item ${item.status}`}
                     >
                       <div className="leave-title">
-                        <strong>
-                          {teacher ? studentName(item.student_id) : "คำขอลา"}
-                        </strong>
+                        <div className="leave-person">
+                          <strong>
+                            {teacher ? studentName(item.student_id) : "คำขอลา"}
+                          </strong>
+                          {teacher && (
+                            <small>
+                              {classroom?.name || classroom?.room}
+                              {state.students.find(
+                                (student) => student.id === item.student_id,
+                              )?.code
+                                ? ` · รหัส ${state.students.find((student) => student.id === item.student_id)?.code}`
+                                : ""}
+                            </small>
+                          )}
+                        </div>
                         <span className={`leave-status ${item.status}`}>
                           {item.status === "pending" ? (
                             <Clock3 size={14} />
@@ -614,7 +672,9 @@ export function AttendancePage({
                         </span>
                       </div>
                       <div className="leave-dates">
-                        <CalendarDays size={22} aria-hidden="true" />
+                        <span className="leave-date-icon">
+                          <CalendarDays size={20} aria-hidden="true" />
+                        </span>
                         <div>
                           <small>วันที่ลา</small>
                           <strong>
@@ -634,7 +694,7 @@ export function AttendancePage({
                         </span>
                       </div>
                       <div className="leave-detail">
-                        <small>เหตุผลการลา</small>
+                        <small>เหตุผล</small>
                         <p className="leave-reason">{item.reason}</p>
                       </div>
                       {item.review_note && (
@@ -689,8 +749,12 @@ export function AttendancePage({
                   <div className="attendance-empty leave-empty">
                     <CalendarCheck size={32} aria-hidden="true" />
                     <p>
-                      ไม่มีคำขอลา
-                      {teacher && leaveFilter === "pending"
+                      {leaveSearch.trim()
+                        ? "ไม่พบคำขอที่ตรงกับการค้นหา"
+                        : "ไม่มีคำขอลา"}
+                      {!leaveSearch.trim() &&
+                      teacher &&
+                      leaveFilter === "pending"
                         ? "ที่รอพิจารณา"
                         : ""}
                     </p>
