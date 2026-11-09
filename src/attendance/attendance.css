@@ -217,10 +217,129 @@
 .attendance-notice {
   color: var(--teal-dark);
 }
+.leave-toolbar {
+  margin: 24px 0 20px;
+}
+.leave-heading {
+  margin-right: auto;
+}
+.leave-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+}
+.leave-heading p {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+.leave-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
 .leave-item {
-  padding: 20px 0;
-  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--gold);
+  border-radius: 8px;
+  box-shadow: 0 3px 12px #00000005;
   overflow-wrap: anywhere;
+}
+.leave-item.approved {
+  border-top-color: var(--teal);
+}
+.leave-item.rejected {
+  border-top-color: var(--coral);
+}
+.leave-title {
+  align-items: start;
+  gap: 10px;
+}
+.leave-title > strong {
+  flex: 1;
+  min-width: 100px;
+}
+.leave-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 4px;
+}
+.leave-status.pending {
+  background: var(--gold-soft);
+  color: var(--gold-text);
+}
+.leave-status.approved {
+  background: var(--teal-soft);
+}
+.leave-status.rejected {
+  background: var(--coral-soft);
+}
+.leave-dates {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 0;
+  color: var(--teal-dark);
+}
+.leave-dates > svg {
+  flex-shrink: 0;
+}
+.leave-dates > div {
+  flex: 1;
+  min-width: 0;
+}
+.leave-dates small,
+.leave-detail > small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.leave-dates strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--text);
+  font-size: 14px;
+}
+.leave-duration {
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+.leave-detail {
+  flex: 1;
+}
+.leave-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.leave-footer > small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.leave-footer .button {
+  padding: 9px 12px;
+  min-height: 42px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+.leave-empty {
+  border-block: 1px solid var(--border);
+}
+.leave-empty > svg {
+  color: var(--teal);
 }
 .leave-title strong {
   font-size: 15px;
@@ -234,11 +353,24 @@
   white-space: pre-wrap;
 }
 .leave-reply {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  padding-top: 12px;
   color: var(--teal-dark);
+}
+.leave-reply svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.leave-reply strong {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 5px;
 }
 .leave-actions {
   justify-content: end;
-  margin-top: 14px;
+  margin-top: 0;
 }
 .attendance-date-range {
   display: grid;
@@ -246,6 +378,9 @@
   gap: 14px;
 }
 @media (max-width: 850px) {
+  .leave-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .attendance-person {
     grid-template-columns: minmax(0, 1fr) auto;
   }
@@ -255,6 +390,19 @@
   }
 }
 @media (max-width: 540px) {
+  .leave-item {
+    padding: 16px;
+  }
+  .leave-heading {
+    width: 100%;
+  }
+  .leave-footer .leave-actions {
+    width: 100%;
+  }
+  .leave-footer .leave-actions .button {
+    flex: 1;
+    justify-content: center;
+  }
   .attendance-heading h1 {
     font-size: 22px;
   }

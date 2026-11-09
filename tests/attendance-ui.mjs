@@ -56,7 +56,16 @@ try {
     await page.getByRole('button',{name:'บันทึกเช็คชื่อ',exact:true}).click();
     await expect(page.getByText('บันทึกเช็คชื่อแล้ว',{exact:true})).toBeVisible();
     await page.getByRole('tab',{name:/คำขอลา/}).click();
+    await expect(page.getByRole('heading',{name:'คำขอลาของนักเรียน'})).toBeVisible();
     await expect(page.locator('.leave-item')).toHaveCount(1);
+    await expect(page.locator('.leave-item .leave-duration')).toHaveText('1 วัน');
+    await expect(page.locator('.leave-item .leave-status')).toContainText('รอพิจารณา');
+    await page.screenshot({path:`/tmp/leave-teacher-${width}.png`,fullPage:true});
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.getByLabel('สถานะคำขอลา').selectOption('all');
+    await expect(page.locator('.leave-item')).toHaveCount(2);
+    await page.screenshot({path:`/tmp/leave-teacher-all-${width}.png`,fullPage:true});
+    await page.getByLabel('สถานะคำขอลา').selectOption('pending');
     await page.getByRole('button',{name:'อนุมัติ',exact:true}).click();
     await page.getByLabel('ข้อความถึงนักเรียน (ไม่บังคับ)').fill('รับทราบ');
     await page.getByRole('button',{name:'ยืนยันผลการลา'}).click();
@@ -81,6 +90,7 @@ try {
     await page.getByRole('button',{name:'ส่งคำขอลา',exact:true}).click();
     await expect(page.getByText('ส่งคำขอลาแล้ว รอครูพิจารณา',{exact:true})).toBeVisible();
     await expect(page.locator('.leave-item')).toHaveCount(1);
+    await expect(page.locator('.leave-item .leave-reason')).toHaveText('ลากิจสำหรับทดสอบ');
     await page.getByRole('button',{name:'ยื่นคำขอลา',exact:true}).click();
     await page.getByLabel('เหตุผลการลา').fill('ซ้ำ');
     await page.getByRole('button',{name:'ส่งคำขอลา',exact:true}).click();

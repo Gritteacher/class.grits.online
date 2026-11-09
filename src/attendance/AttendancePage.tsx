@@ -1,5 +1,16 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { CalendarCheck, Check, Plus, RefreshCw, Save } from "lucide-react";
+import {
+  CalendarCheck,
+  CalendarDays,
+  Check,
+  CircleCheck,
+  Clock3,
+  MessageSquare,
+  Plus,
+  RefreshCw,
+  Save,
+  X,
+} from "lucide-react";
 import type { State } from "../model";
 import { Modal } from "../ui";
 import {
@@ -550,7 +561,11 @@ export function AttendancePage({
             )}
             {pane === "leave" && (
               <>
-                <div className="attendance-check-actions">
+                <div className="attendance-check-actions leave-toolbar">
+                  <div className="leave-heading">
+                    <h2>{teacher ? "คำขอลาของนักเรียน" : "การลาของฉัน"}</h2>
+                    <p>{leaves.length} คำขอ · รอพิจารณา {leaves.filter((item) => item.status === "pending").length} รายการ</p>
+                  </div>
                   {teacher ? (
                     <label>
                       สถานะคำขอ
@@ -579,65 +594,107 @@ export function AttendancePage({
                 </div>
                 <div className="leave-list">
                   {visibleLeaves.map((item) => (
-                    <article key={item.id} className="leave-item">
+                    <article
+                      key={item.id}
+                      className={`leave-item ${item.status}`}
+                    >
                       <div className="leave-title">
                         <strong>
                           {teacher ? studentName(item.student_id) : "คำขอลา"}
                         </strong>
                         <span className={`leave-status ${item.status}`}>
+                          {item.status === "pending" ? (
+                            <Clock3 size={14} />
+                          ) : item.status === "approved" ? (
+                            <CircleCheck size={14} />
+                          ) : (
+                            <X size={14} />
+                          )}
                           {leaveLabels[item.status]}
                         </span>
                       </div>
-                      <p>
-                        {attendanceDate(item.starts_on)}
-                        {item.ends_on !== item.starts_on
-                          ? ` ถึง ${attendanceDate(item.ends_on)}`
-                          : ""}
-                      </p>
-                      <p className="leave-reason">{item.reason}</p>
+                      <div className="leave-dates">
+                        <CalendarDays size={22} aria-hidden="true" />
+                        <div>
+                          <small>วันที่ลา</small>
+                          <strong>
+                            {attendanceDate(item.starts_on)}
+                            {item.ends_on !== item.starts_on
+                              ? ` – ${attendanceDate(item.ends_on)}`
+                              : ""}
+                          </strong>
+                        </div>
+                        <span className="leave-duration">
+                          {Math.round(
+                            (Date.parse(item.ends_on) -
+                              Date.parse(item.starts_on)) /
+                              86400000,
+                          ) + 1}{" "}
+                          วัน
+                        </span>
+                      </div>
+                      <div className="leave-detail">
+                        <small>เหตุผลการลา</small>
+                        <p className="leave-reason">{item.reason}</p>
+                      </div>
                       {item.review_note && (
                         <p className="leave-reply">
-                          ข้อความจากครู: {item.review_note}
+                          <MessageSquare size={16} aria-hidden="true" />
+                          <span>
+                            <strong>ข้อความจากครู</strong>
+                            {item.review_note}
+                          </span>
                         </p>
                       )}
-                      {teacher && item.status === "pending" && (
-                        <div className="leave-actions">
-                          <button
-                            className="button neutral"
-                            onClick={() => {
-                              setMutationError("");
-                              setReviewNote("");
-                              setDecision({
-                                request: item,
-                                status: "rejected",
-                              });
-                            }}
-                          >
-                            ไม่อนุมัติ
-                          </button>
-                          <button
-                            className="button teal"
-                            onClick={() => {
-                              setMutationError("");
-                              setReviewNote("");
-                              setDecision({
-                                request: item,
-                                status: "approved",
-                              });
-                            }}
-                          >
-                            <Check size={16} /> อนุมัติ
-                          </button>
-                        </div>
-                      )}
+                      <footer className="leave-footer">
+                        <small>
+                          ยื่นเมื่อ{" "}
+                          {attendanceDate(item.created_at.slice(0, 10))}
+                        </small>
+                        {teacher && item.status === "pending" && (
+                          <div className="leave-actions">
+                            <button
+                              className="button neutral"
+                              onClick={() => {
+                                setMutationError("");
+                                setReviewNote("");
+                                setDecision({
+                                  request: item,
+                                  status: "rejected",
+                                });
+                              }}
+                            >
+                              <X size={16} /> ไม่อนุมัติ
+                            </button>
+                            <button
+                              className="button teal"
+                              onClick={() => {
+                                setMutationError("");
+                                setReviewNote("");
+                                setDecision({
+                                  request: item,
+                                  status: "approved",
+                                });
+                              }}
+                            >
+                              <Check size={16} /> อนุมัติ
+                            </button>
+                          </div>
+                        )}
+                      </footer>
                     </article>
                   ))}
                 </div>
                 {!visibleLeaves.length && (
-                  <p className="attendance-empty">
-                    ไม่มีคำขอลา
-                    {teacher && leaveFilter === "pending" ? "ที่รอพิจารณา" : ""}
-                  </p>
+                  <div className="attendance-empty leave-empty">
+                    <CalendarCheck size={32} aria-hidden="true" />
+                    <p>
+                      ไม่มีคำขอลา
+                      {teacher && leaveFilter === "pending"
+                        ? "ที่รอพิจารณา"
+                        : ""}
+                    </p>
+                  </div>
                 )}
               </>
             )}
