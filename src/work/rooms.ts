@@ -35,6 +35,8 @@ export function assignmentPatch(
     "opensAt",
     "closesAt",
     "allowLate",
+    "roomSchedules",
+    "roomClassroomIds",
     "color",
   ] as const;
   for (const field of fields) {

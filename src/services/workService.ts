@@ -1,6 +1,7 @@
 import { supabase } from "../lib/supabase";
 import type { Assignment, State, Submission } from "../model";
 import type { GradeEntry } from "../grading/model";
+import { assignmentForRoom, thaiInput } from "../work/model";
 
 type AssignmentRow = {
   id: string;
@@ -15,6 +16,7 @@ type AssignmentRow = {
   submission_required: boolean;
   submission_mode: "individual" | "group";
   group_size: number;
+  room_schedules?: Assignment["roomSchedules"];
 };
 type LinkRow = { assignment_id: string; classroom_id: string };
 type ClassroomRow = { id: string; room: string; name: string };
@@ -56,7 +58,7 @@ export type WorkData = {
 export async function loadWork(userId: string, role: "teacher" | "student"): Promise<WorkData> {
   const { data: assignmentRows, error: assignmentError } = await supabase
     .from("assignments")
-    .select("id, title, description, category, raw_max, final_max, due_at, opens_at, closes_at, submission_required, submission_mode, group_size")
+    .select("id, title, description, category, raw_max, final_max, due_at, opens_at, closes_at, submission_required, submission_mode, group_size, room_schedules")
     .order("created_at", { ascending: true });
   if (assignmentError) throw new Error("โหลดงานไม่สำเร็จ กรุณาลองใหม่");
   const assignmentsFromDb = (assignmentRows ?? []) as AssignmentRow[];
@@ -92,17 +94,19 @@ export async function loadWork(userId: string, role: "teacher" | "student"): Pro
     description: row.description,
     category: row.category,
     rooms: [...new Set(roomsByAssignment.get(row.id) ?? [])],
+    roomClassroomIds: Object.fromEntries(links.filter((link) => link.assignment_id === row.id).map((link) => [roomById.get(link.classroom_id) ?? "", link.classroom_id])),
+    roomSchedules: row.room_schedules ?? {},
     rawMax: Number(row.raw_max),
     finalMax: Number(row.final_max),
     submissionRequired: row.submission_required,
     submissionMode: row.submission_mode,
     groupSize: Number(row.group_size ?? 1),
-    due: row.due_at?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
+    due: row.due_at ? thaiInput(row.due_at).slice(0, 10) : new Date().toISOString().slice(0, 10),
     opensAt: row.opens_at ?? undefined,
     closesAt: row.closes_at ?? undefined,
     allowLate: true,
     color: (["teal", "gold", "coral", "sky"] as const)[index % 4],
-  }));
+  })).map((assignment) => role === "student" ? assignmentForRoom(assignment, assignment.rooms[0] ?? "") : assignment);
 
   let submissionQuery = supabase
     .from("submissions")

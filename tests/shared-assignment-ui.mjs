@@ -51,6 +51,11 @@ try {
     await checkboxes.nth(1).uncheck();
     for (const box of await checkboxes.all()) await expect(box).not.toBeChecked();
     await checkboxes.nth(7).check();
+    await dialog.getByLabel('กำหนดเวลาแยกตามห้อง',{exact:true}).check();
+    await dialog.getByLabel('กำหนดส่ง ม.6/1',{exact:true}).fill('2026-12-02T10:30');
+    await dialog.getByLabel('กำหนดส่ง ม.6/2',{exact:true}).fill('2026-12-05T15:00');
+    await dialog.getByLabel('เปิดรับ ม.6/2',{exact:true}).fill('2026-12-03T08:00');
+    await dialog.getByLabel('รับงานล่าช้า ม.6/1',{exact:true}).uncheck();
     if (initialRoomCount === 8) await dialog.getByLabel('ชื่องาน', { exact: true }).fill('3 แก้ไขแล้ว');
     await page.screenshot({ path: `/tmp/shared-assignment-${width}.png`, fullPage: true });
     await dialog.getByRole('button', { name: /บันทึกการแก้ไข|บันทึกงาน|มอบหมายงาน|บันทึก/ }).last().click();
@@ -65,6 +70,18 @@ try {
     await expect.poll(() => links.length).toBe(expectedRooms.length);
     assert.deepEqual(links.map((link) => link.classroom_id).sort(), expectedRooms.map((room) => room.id).sort());
     assert.equal(assignment.title, initialRoomCount === 8 ? '3 แก้ไขแล้ว' : '3');
+    assert.equal(assignment.room_schedules.room1.closesAt,'2026-12-02T03:30:00.000Z');
+    assert.equal(assignment.room_schedules.room2.closesAt,'2026-12-05T08:00:00.000Z');
+    assert.equal(assignment.room_schedules.room2.opensAt,'2026-12-03T01:00:00.000Z');
+    assert.equal(assignment.room_schedules.room1.allowLate,false);
+    await page.reload();
+    await page.getByRole('button',{name:'พื้นที่งาน',exact:true}).click();
+    await page.getByRole('button',{name:'แก้ไขงาน',exact:true}).click();
+    await expect(dialog.getByLabel('กำหนดส่ง ม.6/1',{exact:true})).toHaveValue('2026-12-02T10:30');
+    await expect(dialog.getByLabel('กำหนดส่ง ม.6/2',{exact:true})).toHaveValue('2026-12-05T15:00');
+    await expect(dialog.getByLabel('รับงานล่าช้า ม.6/1',{exact:true})).not.toBeChecked();
+    await dialog.getByLabel('กำหนดส่ง ม.6/2',{exact:true}).scrollIntoViewIfNeeded();
+    await page.screenshot({path:`/tmp/room-schedules-${width}.png`,fullPage:true});
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.close();
   }

@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {stripTypeScriptTypes} from 'node:module';
+import {SourceTextModule,SyntheticModule} from 'node:vm';
+import {resolve,dirname} from 'node:path';
+let studentRoom='r1';
+const assignment={id:'a',title:'งานร่วม',description:'โจทย์',category:'ใบงาน',raw_max:10,final_max:10,due_at:'2026-12-01T16:59:00Z',closes_at:'2026-12-01T16:59:00Z',opens_at:null,submission_required:true,submission_mode:'individual',group_size:1,
+  room_schedules:{r1:{closesAt:'2026-12-02T03:30:00.000Z',allowLate:false},r2:{closesAt:'2026-12-05T08:00:00.000Z',opensAt:'2026-12-03T01:00:00.000Z',allowLate:true}}};
+let teacher=false;
+const supabase={from(table){const q={select(){return this;},in(){return this;},eq(){return this;},order(){return this;},then(resolve){const ids=teacher?['r1','r2']:[studentRoom];const data=table==='assignments'?[assignment]:table==='assignment_classrooms'?ids.map(id=>({assignment_id:'a',classroom_id:id})):table==='classrooms'?ids.map((id,i)=>({id,name:id==='r1'?'ม.6/1':'ม.6/2',room:String(i+1)})):[];return Promise.resolve({data,error:null}).then(resolve);}};return q;}};
+const cache=new Map();
+const dependency=new SyntheticModule(['supabase'],function(){this.setExport('supabase',supabase);});
+async function load(path){if(path.endsWith('/lib/supabase.ts'))return dependency;if(!cache.has(path))cache.set(path,new SourceTextModule(stripTypeScriptTypes(readFileSync(path,'utf8')),{identifier:path}));return cache.get(path);}
+const service=await load(resolve('src/services/workService.ts'));
+await service.link((specifier,parent)=>load(resolve(dirname(parent.identifier),specifier+'.ts')));
+await service.evaluate();
+const one=(await service.namespace.loadWork('student','student')).assignments[0];
+assert.equal(one.closesAt,assignment.room_schedules.r1.closesAt);
+assert.equal(one.allowLate,false);
+assert.equal(one.due,'2026-12-02');
+assert.deepEqual(Array.from(one.rooms),['ม.6/1']);
+studentRoom='r2';
+const two=(await service.namespace.loadWork('student','student')).assignments[0];
+assert.equal(two.closesAt,assignment.room_schedules.r2.closesAt);
+assert.equal(two.opensAt,assignment.room_schedules.r2.opensAt);
+assert.equal(two.allowLate,true);
+teacher=true;
+const all=(await service.namespace.loadWork('teacher','teacher')).assignments;
+assert.equal(all.length,1,'Shared assignment must not be duplicated');
+assert.equal(Object.keys(all[0].roomSchedules).length,2);
+assert.equal(all[0].closesAt,assignment.closes_at);
+console.log('Passed real work loader: each student receives own classroom schedule; teacher retains one assignment and both schedules.');

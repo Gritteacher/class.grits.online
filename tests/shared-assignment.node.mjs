@@ -12,6 +12,8 @@ const module = await load(resolve('src/work/model.ts'));
 await module.link((specifier, parent) => load(resolve(dirname(parent.identifier), specifier + '.ts')));
 await module.evaluate();
 const { saveAssignmentGroup } = module.namespace;
+const { assignmentForRoom, availability, deadline } = module.namespace;
+const { submitWork } = module.namespace;
 const shared = { id: 'work1', groupId: 'work1', revision: 0, title: 'งานเดิม', description: 'โจทย์เดิม',
   rooms: ['ม.6/1', 'ม.6/2', 'ม.6/3'], category: 'ใบงาน', rawMax: 10, finalMax: 10,
   due: '2026-12-01', closesAt: '2026-12-01T16:59:00Z', color: 'teal' };
@@ -39,4 +41,21 @@ const split = { ...state, assignments: [
 const edited = saveAssignmentGroup(split, { ...split.assignments[0], title: 'แก้เฉพาะห้องสอง', rooms: ['ม.6/2'] }, false, { a1: 0, a2: 0 });
 assert.equal(edited.assignments[0].title, 'งานเดิม');
 assert.equal(edited.assignments[1].title, 'แก้เฉพาะห้องสอง');
+const timed = {...shared, roomClassroomIds: {'ม.6/1':'room1','ม.6/2':'room2'}, roomSchedules: {
+  room1: {closesAt:'2026-12-02T03:00:00Z',allowLate:false},
+  room2: {closesAt:'2026-12-03T08:00:00Z',opensAt:'2026-12-01T01:00:00Z',allowLate:true},
+}};
+const scheduleSaved = saveAssignmentGroup(state, timed, false, {work1:0});
+assert.equal(scheduleSaved.assignments[0].id,shared.id);
+assert.deepEqual(scheduleSaved.grades,state.grades);
+assert.equal(deadline(assignmentForRoom(timed,'ม.6/1')),'2026-12-02T03:00:00Z');
+assert.equal(assignmentForRoom(timed,'ม.6/2').due,'2026-12-03');
+assert.equal(deadline(assignmentForRoom(timed,'ม.6/3')),deadline(shared));
+assert.equal(availability(assignmentForRoom(timed,'ม.6/1'),Date.parse('2026-12-02T04:00:00Z')).allowed,false);
+assert.equal(availability(assignmentForRoom(timed,'ม.6/2'),Date.parse('2026-12-02T04:00:00Z')).allowed,true);
+const submissionState={...state,assignments:[timed],students:[{id:'s1',room:'ม.6/2',status:'active'},{id:'s2',room:'ม.6/1',status:'active'}]};
+const submitted=submitWork(submissionState,{assignmentId:'work1',studentId:'s1',response:'คำตอบ'},Date.parse('2026-12-02T04:00:00Z'));
+assert.equal(submitted.submissions[0].deadlineAt,timed.roomSchedules.room2.closesAt);
+assert.throws(()=>submitWork(submissionState,{assignmentId:'work1',studentId:'s2',response:'คำตอบ'},Date.parse('2026-12-02T04:00:00Z')),/ปิดรับงาน/);
+assert.throws(()=>saveAssignmentGroup(state,{...timed,roomSchedules:{room1:{closesAt:'2026-12-01T03:00:00Z',opensAt:'2026-12-02T03:00:00Z',allowLate:false}}},false,{work1:0}),/เวลาปิดรับ/);
 console.log('Passed multi-room editing: all room links and IDs preserved, grades retained, partial shared edits rejected, independent room edits supported.');

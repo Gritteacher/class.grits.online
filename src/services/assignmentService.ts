@@ -25,6 +25,13 @@ export async function saveAssignmentToSupabase(
   if (matchedClassrooms.length !== requestedRooms.size)
     throw new Error("ไม่พบห้องเรียนจริงที่เลือกครบทุกห้อง");
   const classroomIds = matchedClassrooms.map((room) => room.id);
+  const roomSchedules = Object.fromEntries(matchedClassrooms.flatMap((room) => {
+    const schedule = assignment.roomSchedules?.[room.id] ?? assignment.roomSchedules?.[room.name || room.room];
+    if (!schedule) return [];
+    if (!isoOrNull(schedule.closesAt) || (schedule.opensAt && (!isoOrNull(schedule.opensAt) || Date.parse(schedule.opensAt) >= Date.parse(schedule.closesAt))))
+      throw new Error(`${room.name || room.room}: วันและเวลาไม่ถูกต้อง`);
+    return [[room.id, schedule]];
+  }));
   let existingClassroomIds: string[] = [];
   if (existingId) {
     const { data: links, error } = await supabase.from("assignment_classrooms")
@@ -48,6 +55,7 @@ export async function saveAssignmentToSupabase(
     submission_mode: assignment.submissionMode ?? "individual",
     group_size: assignment.groupSize ?? 1,
     teacher_id: teacherId,
+    room_schedules: roomSchedules,
   };
   const existing = existingId ?? null;
   const { data: saved, error: assignmentError } = existing

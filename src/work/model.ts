@@ -13,6 +13,10 @@ import {
 
 export const deadline = (a: Assignment) =>
   a.closesAt ?? `${a.due}T23:59:59.999+07:00`;
+export function assignmentForRoom(a: Assignment, room: string): Assignment {
+  const schedule = a.roomSchedules?.[a.roomClassroomIds?.[room] ?? room];
+  return schedule ? { ...a, ...schedule, opensAt: schedule.opensAt, due: thaiInput(schedule.closesAt).slice(0, 10) } : a;
+}
 export const thaiInput = (iso: string) =>
   new Date(Date.parse(iso) + 7 * 3600000).toISOString().slice(0, 16);
 export function fromThaiInput(value: string) {
@@ -118,6 +122,11 @@ export function saveAssignment(
       (!Number.isFinite(Date.parse(a.opensAt)) || Date.parse(a.opensAt) >= end))
   )
     throw new Error("เวลาปิดรับต้องอยู่หลังเวลาเปิดรับ");
+  for (const room of a.rooms) {
+    const schedule = assignmentForRoom(a, room);
+    if (!Number.isFinite(Date.parse(deadline(schedule))) || (schedule.opensAt && (!Number.isFinite(Date.parse(schedule.opensAt)) || Date.parse(schedule.opensAt) >= Date.parse(deadline(schedule)))))
+      throw new Error(`${room}: เวลาปิดรับต้องอยู่หลังเวลาเปิดรับ`);
+  }
   const old = state.assignments.find((item) => item.id === a.id);
   if (!old)
     return withRoomAssignments({
@@ -178,7 +187,7 @@ export function saveAssignment(
     // Preserve the due date in effect when existing work was submitted.
     submissions: state.submissions.map((s) =>
       s.assignmentId === a.id
-        ? { ...s, deadlineAt: s.deadlineAt ?? deadline(old) }
+        ? { ...s, deadlineAt: s.deadlineAt ?? deadline(assignmentForRoom(old, state.students.find((student) => student.id === s.studentId)?.room ?? "")) }
         : s,
     ),
   };
@@ -281,7 +290,8 @@ export function submitWork(
   const previous = state.submissions.find(
     (s) => s.assignmentId === a.id && s.studentId === student.id,
   );
-  const window = availability(a, now, previous);
+  const scheduled = assignmentForRoom(a, student.room);
+  const window = availability(scheduled, now, previous);
   if (!window.allowed) throw new Error(window.label);
   if (
     (!input.response.trim() && !input.link && !input.file) ||
@@ -322,7 +332,7 @@ export function submitWork(
     reviewedAt: previous?.reviewedAt,
     reviewScale: previous?.reviewScale,
     revision: previous ? (previous.revision ?? 1) + 1 : 1,
-    deadlineAt: previous?.resubmitUntil ?? deadline(a),
+    deadlineAt: previous?.resubmitUntil ?? deadline(scheduled),
     history: previous
       ? [...(previous.history ?? []), snapshot(previous, a, "resubmitted", now)]
       : [],

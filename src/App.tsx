@@ -48,6 +48,7 @@ import { RosterPage } from "./roster/RosterPage";
 import { AttendancePage } from "./attendance/AttendancePage";
 import { renameRoom } from "./roster/model";
 import {
+  assignmentForRoom,
   availability,
   dateTime,
   deadline,
@@ -528,7 +529,7 @@ export function App() {
       const changed = group.some((assignment) => !previousIds.has(assignment.id));
       const before = previous.assignments.find((assignment) => assignment.id === representative.id);
       const fieldsChanged = before
-        ? ["title", "description", "category", "rawMax", "finalMax", "due", "opensAt", "closesAt", "submissionRequired", "submissionMode", "groupSize"]
+        ? ["title", "description", "category", "rawMax", "finalMax", "due", "opensAt", "closesAt", "submissionRequired", "submissionMode", "groupSize", "roomSchedules"]
             .some((field) => before[field as keyof Assignment] !== representative[field as keyof Assignment])
         : false;
       const nextRooms = [...new Set(group.flatMap((assignment) => assignment.rooms))];
@@ -1306,6 +1307,16 @@ function NewAssignment({
   const [allowLate, setAllowLate] = useState(
     initial ? (initial.allowLate ?? true) : false,
   );
+  const [separateSchedule, setSeparateSchedule] = useState(!!Object.keys(initial?.roomSchedules ?? {}).length);
+  const [roomSchedules, setRoomSchedules] = useState<NonNullable<Assignment["roomSchedules"]>>(initial?.roomSchedules ?? {});
+  const classroomKey = (room: string) => initial?.roomClassroomIds?.[room] ?? state.classrooms?.find((item) => item.name === room)?.id ?? room;
+  const scheduleFor = (room: string) => roomSchedules[classroomKey(room)] ?? {
+    closesAt: due && endTime ? fromThaiInput(`${due}T${endTime}`) : "",
+    opensAt: opens ? fromThaiInput(opens) : undefined,
+    allowLate,
+  };
+  const updateSchedule = (room: string, patch: Partial<NonNullable<Assignment["roomSchedules"]>[string]>) =>
+    setRoomSchedules((current) => ({ ...current, [classroomKey(room)]: { ...scheduleFor(room), ...patch } }));
   const [submissionRequired, setSubmissionRequired] = useState(
     initial?.submissionRequired ?? true,
   );
@@ -1371,6 +1382,8 @@ function NewAssignment({
           description: description.trim(),
           category,
           rooms: targets,
+          roomClassroomIds: { ...initial?.roomClassroomIds, ...Object.fromEntries(targets.map((room) => [room, classroomKey(room)])) },
+          roomSchedules: separateSchedule ? Object.fromEntries(targets.map((room) => [classroomKey(room), scheduleFor(room)])) : {},
           rawMax: Number(raw),
           finalMax: Number(final),
           submissionRequired,
@@ -1455,8 +1468,12 @@ function NewAssignment({
               ))}
             </div>
             {initial && siblings.some((assignment) => assignment.rooms.length > 1) &&
-              <p className="muted">ห้องที่ผูกกับงานเดียวกันใช้รายละเอียดและกำหนดส่งร่วมกัน</p>}
+              <p className="muted">รายละเอียดและคะแนนใช้ร่วมกัน ส่วนเวลาเลือกแยกตามห้องได้</p>}
           </fieldset>
+          <label className="checkbox-label work-check">
+            <input type="checkbox" checked={separateSchedule} onChange={(event) => setSeparateSchedule(event.target.checked)} />
+            กำหนดเวลาแยกตามห้อง
+          </label>
           {initial && (
             <section
               className="room-edit-summary"
@@ -1476,8 +1493,10 @@ function NewAssignment({
                       {a.finalMax} → {nextMax(a).finalMax || "—"}
                     </span>
                     <span>
-                      กำหนดส่ง {formatDate(a.due)}
-                      {due !== initial.due
+                      กำหนดส่ง {dateTime(deadline(assignmentForRoom(a, room)))}
+                      {separateSchedule && scheduleFor(room).closesAt
+                        ? ` → ${dateTime(scheduleFor(room).closesAt)}`
+                        : due !== initial.due
                         ? ` → ${formatDate(due || a.due)}`
                         : ""}
                     </span>
@@ -1500,7 +1519,7 @@ function NewAssignment({
               </select>
             </label>
             <label>
-              {submissionRequired ? "ส่งภายใน" : "วันที่กิจกรรม"}
+              {submissionRequired ? "ส่งภายใน" : "วันที่กิจกรรม"}{separateSchedule ? " (ค่าเริ่มต้น)" : ""}
               <input
                 required
                 type="date"
@@ -1540,7 +1559,7 @@ function NewAssignment({
             hidden={!submissionRequired}
           >
             <label>
-              เวลาเปิดรับ (เว้นว่าง = เปิดทันที)
+              เวลาเปิดรับ (เว้นว่าง = เปิดทันที){separateSchedule ? " · ค่าเริ่มต้น" : ""}
               <input
                 type="datetime-local"
                 disabled={!submissionRequired}
@@ -1549,7 +1568,7 @@ function NewAssignment({
               />
             </label>
             <label>
-              เวลาปิดรับ
+              เวลาปิดรับ{separateSchedule ? " (ค่าเริ่มต้น)" : ""}
               <input
                 type="time"
                 disabled={!submissionRequired}
@@ -1571,6 +1590,19 @@ function NewAssignment({
             />
             รับงานล่าช้าหลังเวลาปิดรับ
           </label>
+          {separateSchedule && <div className="room-schedules">
+            {targets.map((room) => {
+              const schedule = scheduleFor(room);
+              return <fieldset className="room-schedule" key={room}>
+                <legend>{room}</legend>
+                <div className="form-columns work-schedule">
+                  {submissionRequired && <label>เปิดรับ {room}<input type="datetime-local" value={schedule.opensAt ? thaiInput(schedule.opensAt) : ""} onChange={(event) => updateSchedule(room, { opensAt: event.target.value ? fromThaiInput(event.target.value) : undefined })} /></label>}
+                  <label>{submissionRequired ? "กำหนดส่ง" : "วันที่กิจกรรม"} {room}<input type="datetime-local" required value={schedule.closesAt ? thaiInput(schedule.closesAt) : ""} onChange={(event) => updateSchedule(room, { closesAt: event.target.value ? fromThaiInput(event.target.value) : "" })} /></label>
+                </div>
+                {submissionRequired && <label className="checkbox-label work-check"><input type="checkbox" checked={schedule.allowLate} onChange={(event) => updateSchedule(room, { allowLate: event.target.checked })} />รับงานล่าช้า {room}</label>}
+              </fieldset>;
+            })}
+          </div>}
           <div className="form-columns">
             <label>
               คะแนนดิบเต็ม

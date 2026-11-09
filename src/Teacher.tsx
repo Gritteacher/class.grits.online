@@ -25,7 +25,7 @@ import {
   grade,
 } from "./model";
 import { AssignmentIcon, Empty, ScoreRing, Status, TextLink } from "./ui";
-import { availability, dateTime, deadline } from "./work/model";
+import { assignmentForRoom, availability, dateTime, deadline } from "./work/model";
 import { assignmentGroupId, assignmentGroups } from "./work/rooms";
 import { getGrade, gradePoints } from "./grading/model";
 import { FilePreview } from "./components/FilePreview";
@@ -170,7 +170,7 @@ export function TeacherHome({ state, onOpen, onNew }: Shared) {
                 <p className="work-item-description">{a.description}</p>
                 <span className="work-item-rooms" title={groupRooms.join(" · ")}>{a.category} · {groupRooms.length > 2 ? `${groupRooms.length} ห้องเรียน` : groupRooms.join(" · ")}</span>
               </div>
-              <div className="work-item-due"><span>กำหนดส่ง</span><strong><Clock3 size={14} />{new Set(visible.map((item) => item.due)).size === 1 ? formatDate(a.due) : "ต่างกันตามห้อง"}</strong></div>
+              <div className="work-item-due"><span>กำหนดส่ง</span><strong><Clock3 size={14} />{new Set(visible.flatMap((item) => item.rooms.filter((name) => room === "all" || name === room).map((name) => deadline(assignmentForRoom(item, name))))).size === 1 ? formatDate(assignmentForRoom(a, groupRooms[0]).due) : "ต่างกันตามห้อง"}</strong></div>
               <div className="work-item-progress">
                 <div className="submission-meter"><span>{mixed ? "บันทึกแล้ว" : scoreOnly ? "มีคะแนน" : "ส่งแล้ว"} <strong>{completed}/{audience.length}</strong></span>
                   <span className={waiting ? "work-waiting" : ""}>{waiting ? `${waiting} รอตรวจ` : returned ? `${returned} รอแก้ไข` : scoreOnly ? "ครูบันทึกคะแนน" : completed ? "ไม่มีงานรอตรวจ" : "ยังไม่มีงานส่ง"}</span>
@@ -399,7 +399,7 @@ export function Workspace({
               <AssignmentIcon assignment={assignment} />
               <div>
                 <p className="eyebrow">
-                  {assignment.category} · ส่งภายใน {formatDate(assignment.due)}
+                  {assignment.category}
                 </p>
                 <h2>{assignment.title}</h2>
               </div>
@@ -410,8 +410,10 @@ export function Workspace({
             <p className="assignment-description">{assignment.description}</p>
             <div className="work-detail-actions">
               <span className="work-window">
-                {availability(assignment, now).label} · กำหนดส่ง{" "}
-                {dateTime(deadline(assignment))}
+                {(room === "all" ? assignment.rooms : [room]).map((name) => {
+                  const scheduled = assignmentForRoom(assignment, name);
+                  return <span className="room-deadline" key={name}>{name} · กำหนดส่ง {dateTime(deadline(scheduled))} · {availability(scheduled, now).label}</span>;
+                })}
               </span>
               <button
                 className="button neutral"

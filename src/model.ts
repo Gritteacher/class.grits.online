@@ -66,6 +66,8 @@ export type Assignment = {
   opensAt?: string;
   closesAt?: string;
   allowLate?: boolean;
+  roomClassroomIds?: Record<string, string>;
+  roomSchedules?: Record<string, { closesAt: string; opensAt?: string; allowLate: boolean }>;
   edits?: { at: string; before: Omit<Assignment, "edits"> }[];
   color: "teal" | "gold" | "coral" | "sky";
 };
