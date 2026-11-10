@@ -60,6 +60,7 @@ try {
       await expect(home.locator('.avatar-loading')).toHaveCount(0);
       const bounds=await home.boundingBox();
       assert.ok(bounds.y>=0&&bounds.y+bounds.height<900,'Avatar and edit action must be in the first viewport after sign-in');
+      assert.ok(bounds.height<=130,'Home avatar strip must stay compact, not a large profile hero');
       await page.screenshot({path:`/tmp/student-home-avatar-${width}.png`,fullPage:true});
       await page.getByRole('button',{name:'แต่งอวตาร์ของฉัน',exact:true}).click();
       await expect(page.getByRole('dialog',{name:'แต่งอวตาร์ของฉัน'})).toBeVisible();

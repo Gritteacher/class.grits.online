@@ -19,34 +19,70 @@
   margin-top: 0;
   padding-top: 0;
   border-top: 0;
-  gap: 24px;
+  gap: 14px;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
 }
 .avatar-home-welcome > .avatar-portrait {
-  width: 180px;
+  width: 72px;
 }
 .avatar-home-welcome h1 {
-  font-size: 28px;
+  font-size: 20px;
   line-height: 1.4;
-  margin: 8px 0;
+  margin: 0;
+  grid-column: 1;
   overflow-wrap: anywhere;
+}
+.avatar-home-welcome .avatar-profile-copy {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 14px;
+}
+.avatar-home-welcome .avatar-profile-copy > p {
+  grid-column: 1;
+  margin: 0;
+  font-size: 12px;
+}
+.avatar-home-welcome .avatar-profile-copy .avatar-motto {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.avatar-home-welcome .avatar-profile-copy > .button {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  align-self: center;
+  min-height: 38px;
+  margin: 0;
+  padding: 9px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+.avatar-home-welcome .avatar-profile-copy > .form-error {
+  grid-column: 1 / -1;
 }
 .avatar-header-button {
   flex-shrink: 0;
 }
 @media (max-width: 650px) {
   .student-avatar-profile.avatar-home-welcome {
-    gap: 16px;
+    gap: 12px;
   }
   .student-avatar-profile.avatar-home-welcome > .avatar-portrait {
-    width: 128px;
+    width: 64px;
   }
   .avatar-home-welcome h1 {
-    font-size: 22px;
+    font-size: 17px;
   }
   .avatar-home-welcome .avatar-profile-copy .button {
-    padding: 10px 12px;
-    white-space: normal;
+    padding: 9px 10px;
+    white-space: nowrap;
     max-width: 100%;
+  }
+  .avatar-home-welcome .avatar-profile-copy {
+    column-gap: 8px;
   }
 }
 .avatar-portrait canvas {

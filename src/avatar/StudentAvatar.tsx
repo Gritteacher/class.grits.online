@@ -124,18 +124,20 @@ export function StudentAvatar({
     >
       <AvatarPortrait value={value} />
       <div className="avatar-profile-copy">
-        <p className="eyebrow">
-          {prominent ? "วันนี้ของฉัน" : "พื้นที่ของฉัน"}
-        </p>
+        {!prominent && <p className="eyebrow">พื้นที่ของฉัน</p>}
         {prominent ? (
-          <h1>สวัสดี {value.nickname || name.split(" ")[0]}</h1>
+          <h1>{value.nickname || name.split(" ")[0]}</h1>
         ) : (
           <h2>{value.nickname || name.split(" ")[0]}</h2>
         )}
         <p>
           {name} · {room}
         </p>
-        {value.motto && <p className="avatar-motto">{value.motto}</p>}
+        {value.motto && (
+          <p className="avatar-motto" title={value.motto}>
+            {value.motto}
+          </p>
+        )}
         {error ? (
           <p className="form-error" role="alert">
             {error}
@@ -151,6 +153,7 @@ export function StudentAvatar({
         <button
           className={`button ${prominent ? "teal" : "neutral"}`}
           aria-label={prominent ? "แต่งอวตาร์ของฉัน" : "แต่งอวตาร์"}
+          title="แต่งอวตาร์"
           disabled={loading || !!error}
           onClick={() => setEditing(true)}
         >
@@ -159,7 +162,7 @@ export function StudentAvatar({
           ) : (
             <Palette size={17} />
           )}
-          แต่งอวตาร์
+          {prominent ? "แต่ง" : "แต่งอวตาร์"}
         </button>
       </div>
       {editing && (
