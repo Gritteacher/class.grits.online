@@ -19,7 +19,7 @@ test('forwards authorization and request body to server functions', async () => 
 });
 test('unknown and removed endpoints do not fall through to the SPA', async () => {
   const worker = createWorker({});
-  for (const path of ['/api/line-account', '/api/cleanup-submission-files', '/api/missing']) {
+  for (const path of ['/api/line-account', '/.netlify/functions/line-account', '/api/cleanup-submission-files', '/api/missing']) {
     assert.equal((await worker.fetch(new Request('https://class.gritspace.cc'+path), assets)).status, 404);
   }
 });

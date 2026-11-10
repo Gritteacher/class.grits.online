@@ -1,6 +1,8 @@
 # Cloudflare hosting
 
-The production frontend and APIs run on Cloudflare Workers at https://class.gritspace.cc. Supabase Auth, PostgreSQL, Storage, RLS policies and existing student identities remain unchanged. LINE/LIFF integration is removed; historical LINE-link tables are retained to avoid deleting production data.
+The production frontend and APIs run on Cloudflare Workers at https://class.gritspace.cc. Supabase Auth, PostgreSQL, Storage, RLS policies and existing student identities remain unchanged. The application uses direct web login only; no LINE SDK, sign-in, account linking, or LINE secrets are required.
+
+For older installations, `supabase/remove-line-integration.sql` removes only the retired provider mapping table. It never deletes Auth users, profiles, submissions, or grades. Run it only after confirming provider mappings may be permanently removed. New installations do not create that table.
 
 ## Development and deployment
 
