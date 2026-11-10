@@ -69,19 +69,32 @@ export async function renderAvatar(
   ctx.fillStyle = backdrops[value.backdrop];
   ctx.fillRect(0, 0, 512, 640);
   const faceImage = tint(face, skinColors[value.skin], true);
+  // Extend the neck behind open collars; the face and clothing hide both ends.
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(198, 340);
+  ctx.lineTo(314, 340);
+  ctx.lineTo(340, 366);
+  ctx.lineTo(334, 480);
+  ctx.lineTo(178, 480);
+  ctx.lineTo(172, 366);
+  ctx.closePath();
+  ctx.clip();
   ctx.drawImage(
     faceImage,
-    faceImage.width * 0.36,
-    faceImage.height * 0.94,
-    faceImage.width * 0.28,
-    faceImage.height * 0.04,
-    204,
+    faceImage.width * 0.30,
+    faceImage.height * 0.985,
+    faceImage.width * 0.40,
+    faceImage.height * 0.008,
+    172,
     340,
-    104,
+    168,
     140,
   );
+  ctx.restore();
   ctx.drawImage(faceImage, 126, 48, 260, 350);
-  ctx.drawImage(outfit, 22, 350, 468, 390);
+  const collarY = [334, 334, 340, 340, 340, 342, 344, 340, 344, 334, 340, 340];
+  ctx.drawImage(outfit, 22, collarY[value.outfit], 468, 390);
   if (hair) {
     const widths = [285, 300, 318, 330, 330, 305, 350, 320];
     const heights = [190, 198, 350, 400, 380, 230, 390, 330];
@@ -96,7 +109,7 @@ export async function renderAvatar(
   }
   if (accessory) {
     if (value.accessory < 2)
-      ctx.drawImage(accessory, 150, 190, 212, value.accessory === 0 ? 94 : 76);
+      ctx.drawImage(accessory, 150, value.accessory === 0 ? 162 : 170, 212, value.accessory === 0 ? 86 : 70);
     else if (value.accessory === 2) ctx.drawImage(accessory, 320, 104, 60, 42);
     else ctx.drawImage(accessory, 116, 30, 280, 230);
   }

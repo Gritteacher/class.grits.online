@@ -102,4 +102,4 @@ export function validateAvatar(value: Avatar): Avatar {
   };
 }
 export const avatarAsset = (kind: string, index: number) =>
-  `/avatars/watercolor-v1/${kind}-${index}.webp`;
+  `/avatars/watercolor-v2/${kind}-${index}.webp`;
