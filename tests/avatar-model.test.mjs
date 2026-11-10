@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from'node:assert/strict';import{readFileSync}from'node:fs';import{stripTypeScriptTypes}from'node:module';
+const model=await import('data:text/javascript;base64,'+Buffer.from(stripTypeScriptTypes(readFileSync(new URL('../src/avatar/model.ts',import.meta.url),'utf8'))).toString('base64'));
+test('all supported avatar layer combinations validate',()=>{for(let face=0;face<4;face++)for(let skin=0;skin<8;skin++)for(let hair=-1;hair<8;hair++)for(let outfit=0;outfit<12;outfit++)model.validateAvatar({...model.defaultAvatar,face,skin,hair,outfit});});
+test('invalid options and oversized text are rejected',()=>{for(const patch of [{face:4},{skin:-1},{hair:8},{outfit:12},{accessory:4},{backdrop:6},{hairColor:5},{face:1.5},{nickname:'x'.repeat(25)},{motto:'x'.repeat(81)}])assert.throws(()=>model.validateAvatar({...model.defaultAvatar,...patch}));});
+test('nickname and motto trimmed without changing student identity',()=>{const v=model.validateAvatar({...model.defaultAvatar,nickname:'  นักสำรวจ ',motto:' ทดลอง '});assert.equal(v.nickname,'นักสำรวจ');assert.equal(v.motto,'ทดลอง');assert.equal('student_id' in v,false);});

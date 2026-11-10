@@ -1,0 +1,261 @@
+.student-avatar-profile {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 24px 0;
+  margin-bottom: 28px;
+  border-block: 1px solid var(--border);
+}
+.avatar-portrait {
+  position: relative;
+  flex-shrink: 0;
+  width: 156px;
+  aspect-ratio: 4/5;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--surface-alt);
+}
+.avatar-portrait canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.avatar-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--surface-alt);
+}
+.avatar-retry {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: var(--surface);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 12px;
+}
+.avatar-profile-copy {
+  min-width: 0;
+}
+.avatar-profile-copy h2 {
+  font-size: 24px;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.avatar-profile-copy p {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 8px 0;
+}
+.avatar-profile-copy .avatar-motto {
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.avatar-profile-copy .button {
+  margin-top: 8px;
+}
+.avatar-editor {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 28px;
+}
+.avatar-preview {
+  align-self: start;
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  min-width: 0;
+}
+.avatar-preview > .avatar-portrait {
+  width: 220px;
+}
+.avatar-preview > strong {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.avatar-preview > p {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.avatar-preview-actions {
+  display: flex;
+  gap: 8px;
+}
+.avatar-customize {
+  min-width: 0;
+}
+.avatar-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  max-width: 100%;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+.avatar-tabs button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 10px 9px;
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.avatar-tabs button[aria-selected="true"] {
+  color: var(--teal-dark);
+  background: var(--teal-soft);
+  border-radius: 5px;
+}
+.avatar-tabs button[aria-selected="false"] { background: transparent; }
+.avatar-options {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.avatar-options > .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.avatar-swatches {
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  min-width: 0;
+}
+.avatar-swatches legend {
+  font-size: 13px;
+  padding: 0 0 10px;
+}
+.avatar-swatches label {
+  position: relative;
+  cursor: pointer;
+}
+.avatar-swatches input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.avatar-swatches span {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #0002;
+  border-radius: 50%;
+  color: white;
+  text-shadow: 0 1px 2px #000;
+}
+.avatar-swatches svg {
+  filter: drop-shadow(0 1px 2px #000);
+}
+.avatar-swatches input:checked + span {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+.avatar-swatches label:focus-within {
+  outline: 2px solid var(--teal);
+  outline-offset: 5px;
+  border-radius: 50%;
+}
+.avatar-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.avatar-choices button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 100px;
+  padding: 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.avatar-choices img {
+  display: block;
+  width: 100%;
+  height: 75px;
+  object-fit: contain;
+}
+.avatar-choices button[aria-pressed="true"] {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+.avatar-choice-check {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  color: var(--teal-dark);
+}
+.avatar-message {
+  margin: 0 24px 16px;
+  color: var(--teal-dark);
+}
+@media (max-width: 650px) {
+  .student-avatar-profile {
+    gap: 16px;
+  }
+  .student-avatar-profile > .avatar-portrait {
+    width: 110px;
+  }
+  .avatar-profile-copy h2 {
+    font-size: 20px;
+  }
+  .avatar-editor {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .avatar-preview {
+    position: static;
+  }
+  .avatar-preview > .avatar-portrait {
+    width: 160px;
+  }
+  .avatar-choices {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .avatar-tabs button {
+    font-size: 12px;
+    padding-inline: 7px;
+  }
+  .avatar-profile-copy .button {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+}

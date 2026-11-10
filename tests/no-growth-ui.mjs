@@ -33,6 +33,7 @@ try {
       };
       if (url.pathname.endsWith('/classrooms')) body = url.searchParams.get('id')?.startsWith('eq.') ? classroom : [classroom];
       if (url.pathname.endsWith('/classroom_members')) body = [{ classroom_id: 'room1', student_id: student.id, student_number: 1 }];
+      if (url.pathname.endsWith('/student_avatar_customizations')) body = null;
       await route.fulfill({ json: body });
     });
     await page.goto('http://127.0.0.1:4330/');
@@ -50,10 +51,16 @@ try {
     await page.getByRole('button', { name: 'เมนูเพิ่มเติม', exact: true }).click();
     await page.getByRole('menuitem', { name: 'เช็คชื่อและการลา', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'เช็คชื่อและการลา', exact: true })).toBeVisible();
+    if(role==='student'){
+      await page.getByRole('button',{name:'เมนูเพิ่มเติม',exact:true}).click();
+      await page.getByRole('menuitem',{name:'อวตาร์ของฉัน',exact:true}).click();
+      await expect(page.getByRole('heading',{name:'อวตาร์ของฉัน',exact:true})).toBeVisible();
+      await expect(page.getByRole('button',{name:'แต่งอวตาร์',exact:true})).toBeEnabled();
+    }
     await expect(page.getByText('การเติบโต', { exact: true })).toHaveCount(0);
     await expect(page.locator('.growth-page')).toHaveCount(0);
     await page.waitForLoadState('networkidle');
-    assert.deepEqual(requests.filter((url) => /growth|avatar|observation|reinforcement/.test(url)), []);
+    assert.deepEqual(requests.filter((url) => /growth|student_avatars(?:\?|$)|observation|reinforcement/.test(url)), []);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.screenshot({ path: `/tmp/no-growth-${role}-${width}.png`, fullPage: true });
     await page.close();

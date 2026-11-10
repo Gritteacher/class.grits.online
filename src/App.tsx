@@ -19,6 +19,7 @@ import {
   Moon,
   MoreHorizontal,
   Plus,
+  Palette,
   Send,
   Sun,
   TrendingUp,
@@ -44,6 +45,7 @@ import { downloadFile } from "./lib/downloadFile";
 import { SchoolLogo } from "./components/SchoolLogo";
 import { Results, TeacherHome, Workspace } from "./Teacher";
 import { StudentHome } from "./Student";
+import { StudentAvatar } from "./avatar/StudentAvatar";
 import { RosterPage } from "./roster/RosterPage";
 import { AttendancePage } from "./attendance/AttendancePage";
 import { renameRoom } from "./roster/model";
@@ -107,7 +109,7 @@ import {
   saveSubmissionStatusToSupabase,
 } from "./services/submissionService";
 
-type Page = "today" | "workspace" | "results" | "roster" | "resources" | "reports" | "attendance";
+type Page = "today" | "workspace" | "results" | "roster" | "resources" | "reports" | "attendance" | "avatar";
 type Notice = { text: string; error?: boolean } | null;
 type ImportProgress = { completed: number; total: number; failed: number };
 type ImportJob = ImportProgress & { id: number; active: boolean; error?: boolean };
@@ -753,7 +755,7 @@ export function App() {
     ...(role === "teacher" ? [
       { key: "reports" as Page, title: "รายงาน", icon: File },
       { key: "roster" as Page, title: "ห้องเรียน", icon: Users },
-    ] : []),
+    ] : [{ key: "avatar" as Page, title: "อวตาร์ของฉัน", icon: Palette }]),
   ];
   return (
     <div className={`app-shell${importJob ? " has-background-import" : ""}`}>
@@ -918,6 +920,8 @@ export function App() {
               }
             />
           )
+        ) : page === "avatar" ? (
+          student && <><div className="page-heading"><h1>อวตาร์ของฉัน</h1></div><StudentAvatar studentId={student.id} name={student.name} room={student.room} /></>
         ) : page === "results" ? (
           <Results state={state} studentOnly studentId={studentId} />
         ) : (

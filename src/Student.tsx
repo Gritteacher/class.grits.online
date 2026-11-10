@@ -19,6 +19,7 @@ import {
 import { availability, dateTime, deadline } from "./work/model";
 import { getGrade, gradePoints } from "./grading/model";
 import { FilePreview } from "./components/FilePreview";
+import { StudentAvatar } from "./avatar/StudentAvatar";
 
 export function StudentHome({
   student,
@@ -87,6 +88,7 @@ export function StudentHome({
           รายชื่อนี้ถูกพักไว้ ดูงานและคะแนนเดิมได้ แต่ยังส่งงานใหม่ไม่ได้
         </p>
       )}
+      {!tasksOnly && <StudentAvatar studentId={student.id} name={student.name} room={student.room} />}
       {!tasksOnly && (
         <div className="student-overview">
           <section className="student-next">
