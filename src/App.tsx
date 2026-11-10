@@ -162,6 +162,11 @@ export function App() {
       recoveryEmailDismissedFor !== identity.profile.id,
   );
   useEffect(() => {
+    setPage("today");
+    setMoreOpen(false);
+    setAttendancePending(false);
+  }, [identity?.profile.id]);
+  useEffect(() => {
     let mounted = true;
     let authTimer: ReturnType<typeof setTimeout> | undefined;
     void (async () => {
@@ -776,6 +781,7 @@ export function App() {
             </span>
           </button>
           <div className="header-actions">
+            <button className="icon-button avatar-header-button" type="button" title="อวตาร์ของฉัน" aria-label="เปิดอวตาร์ของฉัน" onClick={() => navigate("avatar")}><Palette size={20} /></button>
             <button
               className="icon-button theme-button"
               aria-label={dark ? "ใช้โหมดสว่าง" : "ใช้โหมดมืด"}

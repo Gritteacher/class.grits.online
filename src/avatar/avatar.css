@@ -15,6 +15,40 @@
   border-radius: 8px;
   background: var(--surface-alt);
 }
+.avatar-home-welcome {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+  gap: 24px;
+}
+.avatar-home-welcome > .avatar-portrait {
+  width: 180px;
+}
+.avatar-home-welcome h1 {
+  font-size: 28px;
+  line-height: 1.4;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.avatar-header-button {
+  flex-shrink: 0;
+}
+@media (max-width: 650px) {
+  .student-avatar-profile.avatar-home-welcome {
+    gap: 16px;
+  }
+  .student-avatar-profile.avatar-home-welcome > .avatar-portrait {
+    width: 128px;
+  }
+  .avatar-home-welcome h1 {
+    font-size: 22px;
+  }
+  .avatar-home-welcome .avatar-profile-copy .button {
+    padding: 10px 12px;
+    white-space: normal;
+    max-width: 100%;
+  }
+}
 .avatar-portrait canvas {
   display: block;
   width: 100%;
@@ -124,7 +158,9 @@
   background: var(--teal-soft);
   border-radius: 5px;
 }
-.avatar-tabs button[aria-selected="false"] { background: transparent; }
+.avatar-tabs button[aria-selected="false"] {
+  background: transparent;
+}
 .avatar-options {
   border: 0;
   padding: 0;

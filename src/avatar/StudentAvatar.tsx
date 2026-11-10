@@ -50,7 +50,16 @@ export function AvatarPortrait({
     return () => {
       current = false;
     };
-  }, [value.face, value.skin, value.hair, value.hairColor, value.outfit, value.accessory, value.backdrop, retry]);
+  }, [
+    value.face,
+    value.skin,
+    value.hair,
+    value.hairColor,
+    value.outfit,
+    value.accessory,
+    value.backdrop,
+    retry,
+  ]);
   return (
     <div className={`avatar-portrait ${className}`}>
       <canvas ref={ref} role="img" aria-label="อวตาร์ของฉัน" />
@@ -76,10 +85,12 @@ export function StudentAvatar({
   studentId,
   name,
   room,
+  prominent = false,
 }: {
   studentId: string;
   name: string;
   room: string;
+  prominent?: boolean;
 }) {
   const [value, setValue] = useState<Avatar>({ ...defaultAvatar });
   const [loading, setLoading] = useState(true);
@@ -107,11 +118,20 @@ export function StudentAvatar({
     };
   }, [studentId, revision]);
   return (
-    <section className="student-avatar-profile" aria-label="พื้นที่ของฉัน">
+    <section
+      className={`student-avatar-profile${prominent ? " avatar-home-welcome" : ""}`}
+      aria-label="พื้นที่ของฉัน"
+    >
       <AvatarPortrait value={value} />
       <div className="avatar-profile-copy">
-        <p className="eyebrow">พื้นที่ของฉัน</p>
-        <h2>{value.nickname || name.split(" ")[0]}</h2>
+        <p className="eyebrow">
+          {prominent ? "วันนี้ของฉัน" : "พื้นที่ของฉัน"}
+        </p>
+        {prominent ? (
+          <h1>สวัสดี {value.nickname || name.split(" ")[0]}</h1>
+        ) : (
+          <h2>{value.nickname || name.split(" ")[0]}</h2>
+        )}
         <p>
           {name} · {room}
         </p>
@@ -129,7 +149,8 @@ export function StudentAvatar({
           </p>
         ) : null}
         <button
-          className="button neutral"
+          className={`button ${prominent ? "teal" : "neutral"}`}
+          aria-label={prominent ? "แต่งอวตาร์ของฉัน" : "แต่งอวตาร์"}
           disabled={loading || !!error}
           onClick={() => setEditing(true)}
         >

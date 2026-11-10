@@ -62,7 +62,8 @@ export function StudentHome({
   );
   return (
     <>
-      <div className="page-heading">
+      {!tasksOnly && <StudentAvatar studentId={student.id} name={student.name} room={student.room} prominent />}
+      {tasksOnly && <div className="page-heading">
         <div>
           <p className="eyebrow">
             {student.room} · {state.roomSubjects?.[student.room] ?? student.subject ?? "สังคมศึกษา"} · ภาคเรียน 1/2569
@@ -82,13 +83,12 @@ export function StudentHome({
           <Sparkles size={18} />
           {student.name}
         </span>
-      </div>
+      </div>}
       {student.status === "archived" && (
         <p className="form-error" role="status">
           รายชื่อนี้ถูกพักไว้ ดูงานและคะแนนเดิมได้ แต่ยังส่งงานใหม่ไม่ได้
         </p>
       )}
-      {!tasksOnly && <StudentAvatar studentId={student.id} name={student.name} room={student.room} />}
       {!tasksOnly && (
         <div className="student-overview">
           <section className="student-next">

@@ -11,7 +11,7 @@ try {
     server.on('exit', (code) => reject(Error(`Vite exited ${code}`)));
   });
   browser = await chromium.launch({ channel: 'chrome' });
-  for (const width of [1280, 390]) for (const role of ['teacher', 'student']) {
+  for (const width of [1280, 390, 320]) for (const role of ['teacher', 'student']) {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     const id = role === 'teacher' ? '00000000-0000-4000-8000-000000000001' : '00000000-0000-4000-8000-000000000002';
     const expires = Math.floor(Date.now() / 1000) + 3600;
@@ -55,7 +55,18 @@ try {
     } else {
       await expect(page.getByRole('button', { name: 'เมนูเพิ่มเติม', exact: true })).toHaveCount(1);
       await expect(page.locator('.main-nav button')).toHaveCount(5);
+      const home=page.locator('.avatar-home-welcome');
+      await expect(home).toBeVisible();
+      await expect(home.locator('.avatar-loading')).toHaveCount(0);
+      const bounds=await home.boundingBox();
+      assert.ok(bounds.y>=0&&bounds.y+bounds.height<900,'Avatar and edit action must be in the first viewport after sign-in');
+      await page.screenshot({path:`/tmp/student-home-avatar-${width}.png`,fullPage:true});
+      await page.getByRole('button',{name:'แต่งอวตาร์ของฉัน',exact:true}).click();
+      await expect(page.getByRole('dialog',{name:'แต่งอวตาร์ของฉัน'})).toBeVisible();
+      await page.getByRole('button',{name:'ปิด',exact:true}).click();
     }
+    await page.getByRole('button',{name:'เปิดอวตาร์ของฉัน',exact:true}).click();
+    await expect(page.getByRole('heading',{name:'อวตาร์ของฉัน',exact:true})).toBeVisible();
     await page.getByRole('button', { name: 'เมนูเพิ่มเติม', exact: true }).click();
     await page.getByRole('menuitem', { name: 'เช็คชื่อและการลา', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'เช็คชื่อและการลา', exact: true })).toBeVisible();
