@@ -64,6 +64,9 @@ export function AttendancePage({
   const [revision, setRevision] = useState(0);
   const [leaveFilter, setLeaveFilter] = useState("pending");
   const [leaveSearch, setLeaveSearch] = useState("");
+  const [rosterSearch, setRosterSearch] = useState("");
+  const [uncheckedOnly, setUncheckedOnly] = useState(false);
+  const [openNotes, setOpenNotes] = useState<Record<string, boolean>>({});
   const [newLeave, setNewLeave] = useState(false);
   const [decision, setDecision] = useState<{
     request: LeaveRequest;
@@ -84,6 +87,16 @@ export function AttendancePage({
   const studentName = (id: string) =>
     state.students.find((student) => student.id === id)?.name ||
     "นักเรียนที่เคยอยู่ในห้องนี้";
+  const visibleMembers = members.filter(
+    (student) =>
+      (!uncheckedOnly || !marks[student.id]?.status) &&
+      `${student.name} ${student.code} ${student.number}`
+        .toLocaleLowerCase("th")
+        .includes(rosterSearch.trim().toLocaleLowerCase("th")),
+  );
+  const checkedCount = members.filter(
+    (student) => marks[student.id]?.status,
+  ).length;
   const canLeave = () =>
     !dirty ||
     window.confirm(
@@ -417,7 +430,10 @@ export function AttendancePage({
               <div className="attendance-summary">
                 {Object.entries(attendanceLabels).map(([key, label]) => (
                   <span key={key} className={`attendance-count ${key}`}>
-                    {label}{" "}
+                    <span className="attendance-count-label">
+                      <span className="attendance-status-dot" />
+                      {label}
+                    </span>
                     <strong>
                       {
                         selectedStatuses.filter((status) => status === key)
@@ -431,14 +447,15 @@ export function AttendancePage({
             {pane === "check" && teacher && (
               <>
                 <div className="attendance-check-actions">
-                  <span>
-                    {members.length} คน · ยังไม่เช็ค{" "}
-                    {
-                      members.filter((student) => !marks[student.id]?.status)
-                        .length
-                    }{" "}
-                    คน
-                  </span>
+                  <div className="attendance-roster-heading">
+                    <h2>
+                      รายชื่อนักเรียน <span>{members.length} คน</span>
+                    </h2>
+                    <p>
+                      เช็คแล้ว {checkedCount}/{members.length} คน · ยังไม่เช็ค{" "}
+                      {members.length - checkedCount} คน
+                    </p>
+                  </div>
                   <button
                     className="button neutral"
                     disabled={busy || !members.length}
@@ -461,19 +478,71 @@ export function AttendancePage({
                     <Check size={16} /> เติมคนที่ยังไม่เช็ค
                   </button>
                 </div>
+                <div
+                  className="attendance-progress"
+                  role="progressbar"
+                  aria-label="ความคืบหน้าการเช็คชื่อ"
+                  aria-valuemin={0}
+                  aria-valuemax={members.length || 1}
+                  aria-valuenow={checkedCount}
+                >
+                  <span
+                    style={{
+                      width: `${members.length ? (checkedCount / members.length) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+                <div className="attendance-roster-tools">
+                  <label className="attendance-roster-search">
+                    <Search size={17} aria-hidden="true" />
+                    <input
+                      type="search"
+                      aria-label="ค้นหานักเรียนเพื่อเช็คชื่อ"
+                      placeholder="ค้นหาชื่อ รหัส หรือเลขที่"
+                      value={rosterSearch}
+                      onChange={(event) => setRosterSearch(event.target.value)}
+                    />
+                  </label>
+                  <label className="attendance-unchecked">
+                    <input
+                      type="checkbox"
+                      checked={uncheckedOnly}
+                      onChange={(event) =>
+                        setUncheckedOnly(event.target.checked)
+                      }
+                    />
+                    เฉพาะที่ยังไม่เช็ค
+                  </label>
+                </div>
+                {!!members.length && (
+                  <div className="attendance-column-head" aria-hidden="true">
+                    <span>นักเรียน</span>
+                    <span>สถานะการเข้าเรียน</span>
+                    <span>หมายเหตุ</span>
+                  </div>
+                )}
                 <div className="attendance-roster">
-                  {members.map((student) => (
-                    <div className="attendance-person" key={student.id}>
-                      <div>
-                        <strong>
-                          {student.number}. {student.name}
-                        </strong>
-                        <small>รหัส {student.code}</small>
-                        {approvedLeaveOn(leaves, student.id, day) && (
-                          <small className="attendance-approved">
-                            อนุมัติลาในวันนี้
-                          </small>
-                        )}
+                  {visibleMembers.map((student) => (
+                    <div
+                      className={`attendance-person ${marks[student.id]?.status || "unmarked"}`}
+                      key={student.id}
+                    >
+                      <div className="attendance-student">
+                        <span
+                          className="attendance-number"
+                          aria-label={`เลขที่ ${student.number}`}
+                        >
+                          {student.number}
+                        </span>
+                        <div>
+                          <strong>{student.name}</strong>
+                          <small>รหัส {student.code}</small>
+                          {approvedLeaveOn(leaves, student.id, day) && (
+                            <small className="attendance-approved">
+                              อนุมัติลาในวันนี้
+                            </small>
+                          )}
+                        </div>
                       </div>
                       <fieldset className="attendance-options" disabled={busy}>
                         <legend className="sr-only">
@@ -491,6 +560,7 @@ export function AttendancePage({
                             >
                               <input
                                 type="radio"
+                                aria-label={label}
                                 name={`attendance-${student.id}`}
                                 value={key}
                                 checked={marks[student.id]?.status === key}
@@ -500,24 +570,70 @@ export function AttendancePage({
                                   })
                                 }
                               />
-                              {label}
+                              {key === "present" ? (
+                                <Check size={15} aria-hidden="true" />
+                              ) : key === "late" ? (
+                                <Clock3 size={15} aria-hidden="true" />
+                              ) : key === "absent" ? (
+                                <X size={15} aria-hidden="true" />
+                              ) : (
+                                <CalendarDays size={15} aria-hidden="true" />
+                              )}
+                              {key === "present" ? "มา" : label}
                             </label>
                           ),
                         )}
                       </fieldset>
-                      <input
-                        aria-label={`หมายเหตุ ${student.name}`}
-                        placeholder="หมายเหตุ"
-                        maxLength={500}
-                        value={marks[student.id]?.note || ""}
-                        disabled={busy}
-                        onChange={(event) =>
-                          updateMark(student.id, { note: event.target.value })
-                        }
-                      />
+                      <div className="attendance-note">
+                        <button
+                          type="button"
+                          className={`attendance-note-toggle ${marks[student.id]?.note ? "has-note" : ""}`}
+                          aria-label={`เปิดหรือปิดหมายเหตุ ${student.name}`}
+                          aria-expanded={
+                            openNotes[student.id] ?? !!marks[student.id]?.note
+                          }
+                          onClick={() =>
+                            setOpenNotes((current) => ({
+                              ...current,
+                              [student.id]: !(
+                                current[student.id] ?? !!marks[student.id]?.note
+                              ),
+                            }))
+                          }
+                        >
+                          <MessageSquare size={16} />
+                          <span>
+                            {marks[student.id]?.note
+                              ? "มีหมายเหตุ"
+                              : "เพิ่มหมายเหตุ"}
+                          </span>
+                        </button>
+                        {(openNotes[student.id] ??
+                          !!marks[student.id]?.note) && (
+                          <input
+                            aria-label={`หมายเหตุ ${student.name}`}
+                            placeholder="หมายเหตุ"
+                            maxLength={500}
+                            value={marks[student.id]?.note || ""}
+                            disabled={busy}
+                            onChange={(event) =>
+                              updateMark(student.id, {
+                                note: event.target.value,
+                              })
+                            }
+                          />
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
+                {!!members.length && !visibleMembers.length && (
+                  <p className="attendance-empty">
+                    {uncheckedOnly && !rosterSearch.trim()
+                      ? "เช็คชื่อครบทุกคนแล้ว"
+                      : "ไม่พบนักเรียนที่ตรงกับตัวกรอง"}
+                  </p>
+                )}
                 {!members.length && (
                   <p className="attendance-empty">
                     ยังไม่มีนักเรียนที่กำลังใช้งานในห้องนี้
@@ -529,7 +645,13 @@ export function AttendancePage({
                   </p>
                 )}
                 <div className="attendance-save">
-                  <span>{dirty ? "มีรายการที่ยังไม่บันทึก" : ""}</span>
+                  <span className={dirty ? "attendance-unsaved" : ""}>
+                    {dirty
+                      ? "มีรายการที่ยังไม่บันทึก"
+                      : checkedCount
+                        ? "บันทึกแล้ว"
+                        : "ยังไม่มีรายการเช็คชื่อ"}
+                  </span>
                   <button
                     className="button teal"
                     disabled={busy || !members.length || !dirty}

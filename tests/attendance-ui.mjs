@@ -39,6 +39,19 @@ try {
     });
     await page.goto('http://127.0.0.1:4341/tests/attendance-fixture.html?role=teacher');
     await expect(page.locator('.attendance-person')).toHaveCount(3);
+    await expect(page.getByRole('progressbar',{name:'ความคืบหน้าการเช็คชื่อ'})).toHaveAttribute('aria-valuenow','1');
+    await page.getByLabel('เฉพาะที่ยังไม่เช็ค',{exact:true}).check();
+    await expect(page.locator('.attendance-person')).toHaveCount(2);
+    await page.getByRole('searchbox',{name:'ค้นหานักเรียนเพื่อเช็คชื่อ'}).fill('10001');
+    await expect(page.locator('.attendance-person')).toHaveCount(1);
+    await page.getByRole('searchbox',{name:'ค้นหานักเรียนเพื่อเช็คชื่อ'}).fill('');
+    await page.getByLabel('เฉพาะที่ยังไม่เช็ค',{exact:true}).uncheck();
+    await expect(page.locator('.attendance-person')).toHaveCount(3);
+    const noteRow=page.locator('.attendance-person').nth(2);
+    await noteRow.getByRole('button',{name:/เปิดหรือปิดหมายเหตุ/}).click();
+    await noteRow.getByRole('textbox',{name:/หมายเหตุ/}).fill('หมายเหตุทดสอบ');
+    await noteRow.getByRole('button',{name:/เปิดหรือปิดหมายเหตุ/}).click();
+    await expect(noteRow.getByRole('textbox',{name:/หมายเหตุ/})).toHaveCount(0);
     await expect(page.getByText('อนุมัติลาในวันนี้',{exact:true})).toBeVisible();
     await page.getByRole('button',{name:'เติมคนที่ยังไม่เช็ค'}).click();
     await expect(page.locator('.attendance-person').nth(0).getByRole('radio',{name:'สาย',exact:true})).toBeChecked();
@@ -48,6 +61,7 @@ try {
     assert.equal(records.length,3);
     assert.equal(records.find(r=>r.student_id==='s0').status,'late');
     assert.equal(records.find(r=>r.student_id==='s1').status,'leave');
+    assert.equal(records.find(r=>r.student_id==='s2').note,'หมายเหตุทดสอบ','Hiding a note must not delete it');
     await expect(page.locator('.attendance-person')).toHaveCount(3);
     await page.locator('.attendance-person').nth(2).getByRole('radio',{name:'ขาด',exact:true}).check();
     page.once('dialog',dialog=>dialog.dismiss());
