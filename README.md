@@ -4,7 +4,7 @@ Production classroom application using Vite, React, TypeScript, Supabase and Clo
 
 ## Run
 
-Student watercolor avatars use `supabase/student-avatar-customizations.sql` (apply before deploying the UI). Students can edit only their own configuration; classroom teachers can read but not overwrite it. This feature is independent of the retired growth system. Asset provenance and preparation prompts are documented in `design/avatar-concepts/README.md`. UI and RLS checks are in `tests/avatar-ui.mjs` and `tests/avatar-rls.sql`.
+Watercolor avatars use `supabase/student-avatar-customizations.sql` (apply before deploying the UI). Existing installations also apply `supabase/avatar-teacher-access.sql` to enable teacher-owned avatars. Teachers and students can edit only their own configuration; classroom teachers can read but not overwrite student avatars. This feature is independent of the retired growth system. Asset provenance and preparation prompts are documented in `design/avatar-concepts/README.md`. UI and RLS checks are in `tests/avatar-ui.mjs` and `tests/avatar-rls.sql`.
 
 ```sh
 npm ci

@@ -22,6 +22,7 @@ try {
       user: { id, aud: 'authenticated', role: 'authenticated' },
     });
     const requests = [];
+    let avatarRow = null;
     const student = { id: '00000000-0000-4000-8000-000000000002', role: 'student', display_name: 'นักเรียนทดสอบ', student_code: '00001', recovery_email: 'test@example.test', status: 'active' };
     const classroom = { id: 'room1', name: 'ม.6/1', room: '1', level: 'ม.6', subject: 'สังคมศึกษา', teacher_id: '00000000-0000-4000-8000-000000000001', academic_year: '2569' };
     await page.route('https://example.supabase.co/**', async (route) => {
@@ -33,7 +34,14 @@ try {
       };
       if (url.pathname.endsWith('/classrooms')) body = url.searchParams.get('id')?.startsWith('eq.') ? classroom : [classroom];
       if (url.pathname.endsWith('/classroom_members')) body = [{ classroom_id: 'room1', student_id: student.id, student_number: 1 }];
-      if (url.pathname.endsWith('/student_avatar_customizations')) body = null;
+      if (url.pathname.endsWith('/auth/v1/user')) body = {id,role:'authenticated',aud:'authenticated'};
+      if (url.pathname.endsWith('/student_avatar_customizations')) {
+        if(route.request().method()==='POST'){
+          avatarRow=route.request().postDataJSON();
+          assert.equal(avatarRow.student_id,id,'Avatar save must target the signed-in teacher or student, never another account');
+          body={student_id:id};
+        }else body=avatarRow;
+      }
       await route.fulfill({ json: body });
     });
     await page.goto('http://127.0.0.1:4330/');
@@ -51,11 +59,32 @@ try {
     await page.getByRole('button', { name: 'เมนูเพิ่มเติม', exact: true }).click();
     await page.getByRole('menuitem', { name: 'เช็คชื่อและการลา', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'เช็คชื่อและการลา', exact: true })).toBeVisible();
-    if(role==='student'){
+    {
       await page.getByRole('button',{name:'เมนูเพิ่มเติม',exact:true}).click();
       await page.getByRole('menuitem',{name:'อวตาร์ของฉัน',exact:true}).click();
       await expect(page.getByRole('heading',{name:'อวตาร์ของฉัน',exact:true})).toBeVisible();
       await expect(page.getByRole('button',{name:'แต่งอวตาร์',exact:true})).toBeEnabled();
+      if(role==='teacher'){
+        await expect(page.getByText('ครูทดสอบ · ครูผู้สอน',{exact:true})).toBeVisible();
+        await page.getByRole('button',{name:'แต่งอวตาร์',exact:true}).click();
+        const dialog=page.getByRole('dialog');
+        await dialog.getByRole('tab',{name:'ชุด',exact:true}).click();
+        await dialog.getByRole('button',{name:'แจ็กเก็ตยีนส์',exact:true}).click();
+        await dialog.getByRole('button',{name:'บันทึกอวตาร์',exact:true}).click();
+        await expect(dialog.getByRole('status')).toContainText('บันทึกอวตาร์แล้ว');
+        assert.equal(avatarRow.outfit,7);
+        await dialog.getByRole('button',{name:'ปิด',exact:true}).click();
+        await page.reload();
+        await page.getByRole('button',{name:'เมนูเพิ่มเติม',exact:true}).click();
+        await page.getByRole('menuitem',{name:'อวตาร์ของฉัน',exact:true}).click();
+        await page.getByRole('button',{name:'แต่งอวตาร์',exact:true}).click();
+        await dialog.getByRole('tab',{name:'ชุด',exact:true}).click();
+        await expect(dialog.getByRole('button',{name:'แจ็กเก็ตยีนส์',exact:true})).toHaveAttribute('aria-pressed','true');
+        await expect(dialog.locator('.avatar-loading')).toHaveCount(0);
+        await expect.poll(()=>dialog.locator('img').evaluateAll(images=>images.every(image=>image.complete&&image.naturalWidth>0))).toBe(true);
+        await page.screenshot({path:`/tmp/teacher-avatar-${width}.png`,fullPage:true});
+        await dialog.getByRole('button',{name:'ปิด',exact:true}).click();
+      }
     }
     await expect(page.getByText('การเติบโต', { exact: true })).toHaveCount(0);
     await expect(page.locator('.growth-page')).toHaveCount(0);

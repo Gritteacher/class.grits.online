@@ -23,9 +23,9 @@ using (student_id = (select auth.uid()) or exists (
 ));
 drop policy if exists avatar_customization_insert on public.student_avatar_customizations;
 create policy avatar_customization_insert on public.student_avatar_customizations for insert to authenticated
-with check (student_id = (select auth.uid()) and exists (select 1 from public.profiles p where p.id = (select auth.uid()) and p.role = 'student'));
+with check (student_id = (select auth.uid()) and exists (select 1 from public.profiles p where p.id = (select auth.uid()) and p.role in ('student', 'teacher')));
 drop policy if exists avatar_customization_update on public.student_avatar_customizations;
 create policy avatar_customization_update on public.student_avatar_customizations for update to authenticated
 using (student_id = (select auth.uid()))
-with check (student_id = (select auth.uid()) and exists (select 1 from public.profiles p where p.id = (select auth.uid()) and p.role = 'student'));
+with check (student_id = (select auth.uid()) and exists (select 1 from public.profiles p where p.id = (select auth.uid()) and p.role in ('student', 'teacher')));
 notify pgrst, 'reload schema';

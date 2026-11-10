@@ -22,11 +22,20 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub',current_setting('avatar_test.teacher'),true);
 set local role authenticated;
+insert into public.student_avatar_customizations(student_id,nickname,outfit) values(auth.uid(),'Teacher avatar test',5) on conflict(student_id) do update set nickname=excluded.nickname,outfit=excluded.outfit;
+update public.student_avatar_customizations set outfit=6 where student_id=auth.uid();
 do $$ declare changed integer; begin
   if not exists(select 1 from public.student_avatar_customizations where student_id::text=current_setting('avatar_test.student')) then raise exception 'Class teacher read denied'; end if;
+  if not exists(select 1 from public.student_avatar_customizations where student_id=auth.uid() and outfit=6) then raise exception 'Teacher own save/update denied'; end if;
   update public.student_avatar_customizations set outfit=0 where student_id::text=current_setting('avatar_test.student');
   get diagnostics changed = row_count;
   if changed<>0 then raise exception 'Teacher edited student customization'; end if;
 end $$;
+reset role;
+select set_config('request.jwt.claim.sub',current_setting('avatar_test.other'),true);
+set local role authenticated;
+do $$ begin
+  if exists(select 1 from public.student_avatar_customizations where student_id::text=current_setting('avatar_test.teacher')) then raise exception 'Student read teacher avatar allowed'; end if;
+end $$;
 rollback;
-select 'PASS: own save, option validation, peer isolation, teacher read only; all test data rolled back' as result;
+select 'PASS: student own save, teacher own save, peer isolation, teacher cannot edit students; all test data rolled back' as result;

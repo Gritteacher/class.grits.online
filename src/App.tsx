@@ -752,10 +752,11 @@ export function App() {
   ];
   const moreMenu = [
     { key: "attendance" as Page, title: "เช็คชื่อและการลา", icon: CheckCircle2 },
+    { key: "avatar" as Page, title: "อวตาร์ของฉัน", icon: Palette },
     ...(role === "teacher" ? [
       { key: "reports" as Page, title: "รายงาน", icon: File },
       { key: "roster" as Page, title: "ห้องเรียน", icon: Users },
-    ] : [{ key: "avatar" as Page, title: "อวตาร์ของฉัน", icon: Palette }]),
+    ] : []),
   ];
   return (
     <div className={`app-shell${importJob ? " has-background-import" : ""}`}>
@@ -863,7 +864,9 @@ export function App() {
           <p>{rosterError}</p>
           <button type="button" onClick={() => setRosterRetry((value) => value + 1)}>โหลดรายชื่อใหม่</button>
         </div>}
-        {page === "attendance" ? (
+        {page === "avatar" && identity ? (
+          <><div className="page-heading"><h1>อวตาร์ของฉัน</h1></div><StudentAvatar studentId={identity.profile.id} name={identity.profile.display_name} room={role === "teacher" ? "ครูผู้สอน" : student?.room ?? "นักเรียน"} /></>
+        ) : page === "attendance" ? (
           <AttendancePage state={state} role={role} onPendingChange={setAttendancePending} />
         ) : page === "reports" && role === "teacher" ? (
           <ReportsPage state={state} />
@@ -920,8 +923,6 @@ export function App() {
               }
             />
           )
-        ) : page === "avatar" ? (
-          student && <><div className="page-heading"><h1>อวตาร์ของฉัน</h1></div><StudentAvatar studentId={student.id} name={student.name} room={student.room} /></>
         ) : page === "results" ? (
           <Results state={state} studentOnly studentId={studentId} />
         ) : (
