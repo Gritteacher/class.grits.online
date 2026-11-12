@@ -31,10 +31,17 @@ export type TeacherRoster = {
 };
 
 export async function loadStudentProfile(studentId: string): Promise<Student | null> {
-  const { data: members, error: memberError } = await supabase
+  const [memberResult, profileResult] = await Promise.all([supabase
     .from("classroom_members")
     .select("classroom_id, student_number")
-    .eq("student_id", studentId);
+    .eq("student_id", studentId),
+    supabase.from("profiles")
+      .select("id, display_name, student_code, status")
+      .eq("id", studentId)
+      .maybeSingle<ProfileRecord>(),
+  ]);
+  const { data: members, error: memberError } = memberResult;
+  const { data: profile, error: profileError } = profileResult;
   if (memberError) throw new Error(`โหลดสมาชิกห้องเรียนไม่สำเร็จ (${memberError.code || "network"})`);
   if (!members?.length) throw new Error("บัญชีนักเรียนนี้ยังไม่มีห้องเรียนที่เข้าถึงได้ กรุณาให้ครูตรวจสอบการผูกบัญชีกับห้องเรียน");
   const member = members[0] as { classroom_id: string; student_number: number | null };
@@ -45,16 +52,6 @@ export async function loadStudentProfile(studentId: string): Promise<Student | n
     .maybeSingle<{ room: string; name: string; subject?: string | null }>();
   if (classroomError) throw new Error(`โหลดห้องเรียนไม่สำเร็จ (${classroomError.code || "network"})`);
   if (!classroom) throw new Error("ไม่พบห้องเรียนหรือไม่มีสิทธิ์เข้าถึง กรุณาให้ครูตรวจสอบห้องเรียน");
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("id, display_name, student_code, status")
-    .eq("id", studentId)
-    .maybeSingle<{
-      id: string;
-      display_name: string;
-      student_code: string | null;
-      status?: "active" | "archived";
-    }>();
   if (profileError) throw new Error(`โหลดโปรไฟล์นักเรียนไม่สำเร็จ (${profileError.code || "network"})`);
   if (!profile) throw new Error("ไม่พบโปรไฟล์นักเรียน กรุณาติดต่อครู");
   return {

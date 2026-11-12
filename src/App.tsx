@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import { compressImage } from "./lib/compressImage";
 import {
   ArrowLeft,
@@ -46,7 +46,6 @@ import { SchoolLogo } from "./components/SchoolLogo";
 import { Results, TeacherHome, Workspace } from "./Teacher";
 import { StudentHome } from "./Student";
 import { StudentAvatar } from "./avatar/StudentAvatar";
-import { RosterPage } from "./roster/RosterPage";
 import { AttendancePage } from "./attendance/AttendancePage";
 import { renameRoom } from "./roster/model";
 import {
@@ -103,11 +102,13 @@ import {
 import { saveGradeToSupabase, saveReviewToSupabase } from "./services/scoreService";
 import { loadResources } from "./services/resourceService";
 import { ResourcesPage } from "./resources/ResourcesPage";
-import { ReportsPage } from "./reports/ReportsPage";
 import {
   deleteAssignmentFromSupabase,
   saveSubmissionStatusToSupabase,
 } from "./services/submissionService";
+
+const RosterPage = lazy(() => import("./roster/RosterPage").then((module) => ({ default: module.RosterPage })));
+const ReportsPage = lazy(() => import("./reports/ReportsPage").then((module) => ({ default: module.ReportsPage })));
 
 type Page = "today" | "workspace" | "results" | "roster" | "resources" | "reports" | "attendance" | "avatar";
 type Notice = { text: string; error?: boolean } | null;
@@ -870,6 +871,7 @@ export function App() {
           <p>{rosterError}</p>
           <button type="button" onClick={() => setRosterRetry((value) => value + 1)}>โหลดรายชื่อใหม่</button>
         </div>}
+        <Suspense fallback={<p role="status"><span className="loading-spinner" aria-hidden="true" /> กำลังโหลด...</p>}>
         {page === "avatar" && identity ? (
           <><div className="page-heading"><h1>อวตาร์ของฉัน</h1></div><StudentAvatar studentId={identity.profile.id} name={identity.profile.display_name} room={role === "teacher" ? "ครูผู้สอน" : student?.room ?? "นักเรียน"} /></>
         ) : page === "attendance" ? (
@@ -946,6 +948,7 @@ export function App() {
           <span>ห้องเรียนสังคมครูไต๋</span>
           <span>พื้นที่เล็ก ๆ ของการเรียนรู้ที่ยิ่งใหญ่</span>
         </footer>
+        </Suspense>
       </main>
       {importJob && (
         <button

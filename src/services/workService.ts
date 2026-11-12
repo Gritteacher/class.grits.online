@@ -65,11 +65,27 @@ export async function loadWork(userId: string, role: "teacher" | "student"): Pro
   if (!assignmentsFromDb.length) return { assignments: [], submissions: [], grades: [] };
 
   const assignmentIds = assignmentsFromDb.map((assignment) => assignment.id);
-  const { data: linkRows, error: linkError } = await supabase
-    .from("assignment_classrooms")
-    .select("assignment_id, classroom_id")
+  let submissionQuery = supabase.from("submissions")
+    .select("id, assignment_id, student_id, response, link, file_path, file_name, file_type, status, feedback, submitted_at, reviewed_at, returned_at, resubmit_until, revision_note, group_id, group_member_ids")
     .in("assignment_id", assignmentIds);
+  let scoreQuery = supabase.from("score_entries")
+    .select("id, assignment_id, student_id, raw_score, status, note, updated_at")
+    .in("assignment_id", assignmentIds);
+  if (role === "student") {
+    submissionQuery = submissionQuery.eq("student_id", userId);
+    scoreQuery = scoreQuery.eq("student_id", userId);
+  }
+  const [linkResult, submissionResult, scoreResult] = await Promise.all([
+    supabase.from("assignment_classrooms").select("assignment_id, classroom_id").in("assignment_id", assignmentIds),
+    submissionQuery,
+    scoreQuery,
+  ]);
+  const { data: linkRows, error: linkError } = linkResult;
+  const { data: submissionRows, error: submissionError } = submissionResult;
+  const { data: scoreRows, error: scoreError } = scoreResult;
   if (linkError) throw new Error("โหลดห้องของงานไม่สำเร็จ กรุณาลองใหม่");
+  if (submissionError) throw new Error("โหลดงานส่งไม่สำเร็จ กรุณาลองใหม่");
+  if (scoreError) throw new Error("โหลดคะแนนไม่สำเร็จ กรุณาลองใหม่");
   const links = (linkRows ?? []) as LinkRow[];
   const classroomIds = [...new Set(links.map((link) => link.classroom_id))];
   const { data: classroomRows, error: classroomError } = classroomIds.length
@@ -108,21 +124,14 @@ export async function loadWork(userId: string, role: "teacher" | "student"): Pro
     color: (["teal", "gold", "coral", "sky"] as const)[index % 4],
   })).map((assignment) => role === "student" ? assignmentForRoom(assignment, assignment.rooms[0] ?? "") : assignment);
 
-  let submissionQuery = supabase
-    .from("submissions")
-    .select("id, assignment_id, student_id, response, link, file_path, file_name, file_type, status, feedback, submitted_at, reviewed_at, returned_at, resubmit_until, revision_note, group_id, group_member_ids")
-    .in("assignment_id", assignmentIds);
-  if (role === "student") submissionQuery = submissionQuery.eq("student_id", userId);
-  const { data: submissionRows, error: submissionError } = await submissionQuery;
-  if (submissionError) throw new Error("โหลดงานส่งไม่สำเร็จ กรุณาลองใหม่");
-  const submissions: Submission[] = await Promise.all(((submissionRows ?? []) as SubmissionRow[]).map(async (row) => {
-    let fileData = row.file_path;
-    if (row.file_path) {
-      const { data: signed, error: signedError } = await supabase.storage
-        .from("classroom-files")
-        .createSignedUrl(row.file_path, 60 * 60);
-      if (!signedError && signed?.signedUrl) fileData = signed.signedUrl;
-    }
+  const paths = [...new Set(((submissionRows ?? []) as SubmissionRow[]).flatMap((row) => row.file_path ? [row.file_path] : []))];
+  const signedByPath = new Map<string, string>();
+  if (paths.length) {
+    const { data: signed } = await supabase.storage.from("classroom-files").createSignedUrls(paths, 60 * 60);
+    for (const item of signed ?? []) if (item.path && item.signedUrl && !item.error) signedByPath.set(item.path, item.signedUrl);
+  }
+  const submissions: Submission[] = ((submissionRows ?? []) as SubmissionRow[]).map((row) => {
+    const fileData = row.file_path ? signedByPath.get(row.file_path) ?? row.file_path : null;
     return {
         id: row.id,
         assignmentId: row.assignment_id,
@@ -141,15 +150,7 @@ export async function loadWork(userId: string, role: "teacher" | "student"): Pro
         link: row.link ?? undefined,
         file: fileData ? { name: row.file_name ?? "ไฟล์ส่งงาน", data: fileData, type: row.file_type ?? "application/octet-stream" } : undefined,
       };
-  }));
-
-  let scoreQuery = supabase
-    .from("score_entries")
-    .select("id, assignment_id, student_id, raw_score, status, note, updated_at")
-    .in("assignment_id", assignmentIds);
-  if (role === "student") scoreQuery = scoreQuery.eq("student_id", userId);
-  const { data: scoreRows, error: scoreError } = await scoreQuery;
-  if (scoreError) throw new Error("โหลดคะแนนไม่สำเร็จ กรุณาลองใหม่");
+  });
   const grades: GradeEntry[] = ((scoreRows ?? []) as ScoreRow[])
         .filter((row) => row.raw_score !== null)
         .map((row) => ({

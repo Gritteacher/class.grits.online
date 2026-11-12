@@ -60,15 +60,31 @@ export async function signIn(
   return { session: data.session, profile };
 }
 
+const pendingProfiles = new Map<string, Promise<Profile | null>>();
+
 export async function getCurrentIdentity(
   session: Session,
 ): Promise<AuthIdentity | null> {
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("id, role, display_name, student_code, recovery_email")
-    .eq("id", session.user.id)
-    .maybeSingle<Profile>();
-  if (error || !profile) return null;
+  // Session bootstrap and INITIAL_SESSION can request the same profile together.
+  // Share only in-flight reads, never retain account data after completion.
+  const id = session.user.id;
+  let pending = pendingProfiles.get(id);
+  if (!pending) {
+    pending = (async () => {
+      const { data, error } = await supabase.from("profiles")
+        .select("id, role, display_name, student_code, recovery_email")
+        .eq("id", id).maybeSingle<Profile>();
+      return error ? null : data;
+    })();
+    pendingProfiles.set(id, pending);
+  }
+  let profile: Profile | null;
+  try {
+    profile = await pending;
+  } finally {
+    if (pendingProfiles.get(id) === pending) pendingProfiles.delete(id);
+  }
+  if (!profile) return null;
   return { session, profile };
 }
 
