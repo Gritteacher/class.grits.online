@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bell, BookOpen, Download, Eye, FileText, Megaphone, Plus, Trash2, Upload } from "lucide-react";
 import type { Announcement, Material, Room, State } from "../model";
 import { Modal } from "../ui";
 import { createAnnouncement, createMaterial, deleteAnnouncement, deleteMaterial, getMaterialUrl, materialFileName } from "../services/resourceService";
+import type { MaterialUploadProgress } from "../services/resourceService";
 import { downloadFile } from "../lib/downloadFile";
 import { FilePreview } from "../components/FilePreview";
 import "./resources.css";
@@ -23,6 +24,14 @@ export function ResourcesPage({
   onNotice: (text: string, error?: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<MaterialUploadProgress | null>(null);
+  const [uploadError, setUploadError] = useState("");
+  useEffect(() => {
+    if (!uploadProgress) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [Boolean(uploadProgress)]);
   const [fileAction, setFileAction] = useState<{ id: string; type: "view" | "download" } | null>(null);
   const [preview, setPreview] = useState<{ material: Material; url: string } | null>(null);
   const [materialOpen, setMaterialOpen] = useState(false);
@@ -83,7 +92,7 @@ export function ResourcesPage({
         {role === "teacher" && (
           <div className="resource-actions">
             <button className="button neutral" onClick={() => setAnnouncementOpen(true)}><Megaphone size={17} /> ประกาศ</button>
-            <button className="button gold" onClick={() => setMaterialOpen(true)}><Upload size={17} /> เพิ่มสื่อ</button>
+            <button className="button gold" onClick={() => { setUploadError(""); setMaterialOpen(true); }}><Upload size={17} /> เพิ่มสื่อ</button>
           </div>
         )}
       </div>
@@ -109,16 +118,55 @@ export function ResourcesPage({
           </button>
         </div>
       </Modal>}
-      {materialOpen && <MaterialModal rooms={state.rooms} busy={busy} onClose={() => setMaterialOpen(false)} onSubmit={async (input) => { if (!userId) return; setBusy(true); try { const material = await createMaterial({ ...input, teacherId: userId }); onState({ ...state, materials: [material, ...materials] }); onNotice("อัปโหลดสื่อเรียบร้อยแล้ว"); setMaterialOpen(false); } catch (error) { onNotice(error instanceof Error ? error.message : "อัปโหลดสื่อไม่สำเร็จ", true); } finally { setBusy(false); } }} />}
+      {materialOpen && <MaterialModal rooms={state.rooms} busy={busy} progress={uploadProgress} error={uploadError} onClose={() => setMaterialOpen(false)} onSubmit={async (input) => {
+        if (!userId || busy) return;
+        setBusy(true);
+        setUploadError("");
+        setUploadProgress({ phase: "preparing", percent: null });
+        try {
+          const material = await createMaterial({ ...input, teacherId: userId, onProgress: setUploadProgress });
+          onState({ ...state, materials: [material, ...materials] });
+          onNotice("อัปโหลดสื่อเรียบร้อยแล้ว");
+          setMaterialOpen(false);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "อัปโหลดสื่อไม่สำเร็จ";
+          setUploadError(message);
+          onNotice(message, true);
+        } finally {
+          setUploadProgress(null);
+          setBusy(false);
+        }
+      }} />}
       {announcementOpen && <AnnouncementModal rooms={state.rooms} busy={busy} onClose={() => setAnnouncementOpen(false)} onSubmit={async (input) => { if (!userId) return; setBusy(true); try { const announcement = await createAnnouncement({ ...input, teacherId: userId }); onState({ ...state, announcements: [announcement, ...announcements] }); onNotice("ประกาศเรียบร้อยแล้ว"); setAnnouncementOpen(false); } catch (error) { onNotice(error instanceof Error ? error.message : "สร้างประกาศไม่สำเร็จ", true); } finally { setBusy(false); } }} />}
       {deleting && <Modal title="ยืนยันการลบ" onClose={() => setDeleting(null)}><div className="modal-body"><p>ต้องการลบรายการนี้ใช่ไหม ข้อมูลที่ลบแล้วไม่สามารถกู้คืนได้</p></div><div className="modal-actions"><button className="button neutral" onClick={() => setDeleting(null)}>ยกเลิก</button><button className="button coral" disabled={busy} onClick={() => void remove()}>{busy ? <span className="loading-spinner" aria-hidden="true" /> : <Trash2 size={16} />} {busy ? "กำลังลบ" : "ยืนยันลบ"}</button></div></Modal>}
     </>
   );
 }
 
-function MaterialModal({ rooms, busy, onClose, onSubmit }: { rooms: Room[]; busy: boolean; onClose: () => void; onSubmit: (input: { title: string; description: string; rooms: Room[]; file: File }) => Promise<void> }) {
+function MaterialModal({ rooms, busy, progress, error, onClose, onSubmit }: { rooms: Room[]; busy: boolean; progress: MaterialUploadProgress | null; error: string; onClose: () => void; onSubmit: (input: { title: string; description: string; rooms: Room[]; file: File }) => Promise<void> }) {
   const fileRef = useRef<HTMLInputElement>(null); const [title, setTitle] = useState(""); const [description, setDescription] = useState(""); const [selected, setSelected] = useState<Room[]>([]); const [file, setFile] = useState<File | null>(null);
-  return <Modal title="เพิ่มสื่อการสอน" subtitle="อัปโหลดให้ห้องเรียน" onClose={() => { if (!busy) onClose(); }}><form className="modal-body form-stack" onSubmit={(e) => { e.preventDefault(); if (!busy && file && title.trim() && selected.length) void onSubmit({ title, description, rooms: selected, file }); }}><label>ชื่อสื่อ<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="เช่น ใบความรู้เรื่องสหกรณ์" required /></label><label>รายละเอียด<textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="รายละเอียดสั้น ๆ (ไม่บังคับ)" rows={3} /></label><fieldset className="resource-rooms"><legend>ห้องเรียน</legend>{rooms.map((room) => <label key={room}><input type="checkbox" checked={selected.includes(room)} onChange={() => setSelected((current) => current.includes(room) ? current.filter((item) => item !== room) : [...current, room])} /> {room}</label>)}</fieldset><label>ไฟล์ PDF หรือรูปภาพ<input ref={fileRef} type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required /></label><div className="modal-actions"><button type="button" className="button neutral" disabled={busy} onClick={onClose}>ยกเลิก</button><button className="button gold" disabled={busy || !file || !selected.length}>{busy ? <span className="loading-spinner" aria-hidden="true" /> : <Plus size={16} />} {busy ? "กำลังอัปโหลด" : "อัปโหลด"}</button></div></form></Modal>;
+  const status = progress?.phase === "preparing" ? "กำลังเตรียมไฟล์" : progress?.phase === "saving" ? "อัปโหลดครบแล้ว กำลังบันทึกข้อมูล" : "กำลังอัปโหลดไฟล์";
+  return <Modal title="เพิ่มสื่อการสอน" subtitle="อัปโหลดให้ห้องเรียน" onClose={() => { if (!busy) onClose(); }}>
+    <form className="modal-body form-stack" onSubmit={(e) => {
+      e.preventDefault();
+      if (!busy && file && title.trim() && selected.length) void onSubmit({ title, description, rooms: selected, file });
+    }}>
+      <label>ชื่อสื่อ<input disabled={busy} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="เช่น ใบความรู้เรื่องสหกรณ์" required /></label>
+      <label>รายละเอียด<textarea disabled={busy} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="รายละเอียดสั้น ๆ (ไม่บังคับ)" rows={3} /></label>
+      <fieldset className="resource-rooms" disabled={busy}><legend>ห้องเรียน</legend>{rooms.map((room) => <label key={room}><input type="checkbox" checked={selected.includes(room)} onChange={() => setSelected((current) => current.includes(room) ? current.filter((item) => item !== room) : [...current, room])} /> {room}</label>)}</fieldset>
+      <label>ไฟล์ PDF หรือรูปภาพ<input disabled={busy} ref={fileRef} type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required /></label>
+      {progress && <div className="material-upload-progress" aria-busy="true">
+        <div className="material-upload-status" role="status"><span className="loading-spinner" aria-hidden="true" /><span>{status}</span><strong>{progress.percent === null ? "" : `${progress.percent}%`}</strong></div>
+        <progress aria-label="ความคืบหน้าการอัปโหลดสื่อ" max={100} value={progress.percent ?? undefined} />
+        <span className="material-upload-filename">{file?.name}</span>
+      </div>}
+      {error && <p role="alert" className="material-upload-error">{error}</p>}
+      <div className="modal-actions">
+        <button type="button" className="button neutral" disabled={busy} onClick={onClose}>ยกเลิก</button>
+        <button className="button gold" disabled={busy || !file || !selected.length || !title.trim()}>{busy ? <span className="loading-spinner" aria-hidden="true" /> : <Plus size={16} />} {busy ? progress?.phase === "saving" ? "กำลังบันทึก" : "กำลังอัปโหลด" : "อัปโหลด"}</button>
+      </div>
+    </form>
+  </Modal>;
 }
 
 function AnnouncementModal({ rooms, busy, onClose, onSubmit }: { rooms: Room[]; busy: boolean; onClose: () => void; onSubmit: (input: { room: Room; title: string; body: string }) => Promise<void> }) {

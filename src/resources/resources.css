@@ -28,4 +28,18 @@
 .resource-rooms legend { width: 100%; margin-bottom: 2px; font-size: 12px; }
 .resource-rooms label { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 11px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-alt); font-size: 13px; }
 .resource-rooms input { accent-color: var(--accent); }
+.material-upload-progress { display: grid; gap: 8px; padding-block: 12px; border-block: 1px solid var(--border); min-width: 0; }
+.material-upload-status { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--teal-dark); }
+.material-upload-status > span:not(.loading-spinner) { flex: 1; min-width: 0; }
+.material-upload-status strong { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.material-upload-progress progress { display: block; width: 100%; height: 10px; border: 0; border-radius: 4px; overflow: hidden; background: var(--surface-alt); accent-color: var(--teal); }
+.material-upload-progress progress::-webkit-progress-bar { background: var(--surface-alt); border-radius: 4px; }
+.material-upload-progress progress::-webkit-progress-value { background: var(--teal); border-radius: 4px; transition: width 180ms ease; }
+.material-upload-progress progress::-moz-progress-bar { background: var(--teal); border-radius: 4px; }
+.material-upload-progress progress:indeterminate { background: linear-gradient(90deg, var(--surface-alt) 0 30%, var(--teal) 50%, var(--surface-alt) 70%); background-size: 200% 100%; animation: material-upload-wait 1.2s linear infinite; }
+.material-upload-progress progress:indeterminate::-webkit-progress-bar { background: transparent; }
+.material-upload-filename { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.material-upload-error { color: var(--coral-text); margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+@keyframes material-upload-wait { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .material-upload-progress progress { animation: none; } .material-upload-progress progress::-webkit-progress-value { transition: none; } }
 @media (max-width: 800px) { .resource-layout { grid-template-columns: 1fr; } .resources-heading { gap: 14px; } .resource-item .button { padding-inline: 10px; } }

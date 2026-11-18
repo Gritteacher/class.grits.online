@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabase";
 import { compressImage } from "../lib/compressImage";
+import { uploadWithProgress } from "../lib/uploadWithProgress";
 import type { Announcement, Material, MaterialDownloadLog, Room } from "../model";
 
 type ClassroomRow = { id: string; room: string; name: string; teacher_id: string };
@@ -26,6 +27,11 @@ type DownloadMember = { student_id: string; classroom_id: string };
 
 const BUCKET = "classroom-files";
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
+
+export type MaterialUploadProgress = {
+  phase: "preparing" | "uploading" | "saving";
+  percent: number | null;
+};
 
 function safeFileName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120) || "material";
@@ -149,6 +155,7 @@ export async function createMaterial(input: {
   description: string;
   rooms: Room[];
   file: File;
+  onProgress?: (progress: MaterialUploadProgress) => void;
 }) {
   const title = input.title.trim();
   if (!title) throw new Error("กรอกชื่อสื่อก่อนอัปโหลด");
@@ -157,16 +164,17 @@ export async function createMaterial(input: {
   if (!input.file.type || !(input.file.type === "application/pdf" || input.file.type.startsWith("image/"))) {
     throw new Error("รองรับเฉพาะไฟล์ PDF หรือรูปภาพ");
   }
+  input.onProgress?.({ phase: "preparing", percent: null });
   const file = await compressImage(input.file);
   const classrooms = await teacherClassrooms(input.teacherId);
   const selected = classrooms.filter((room) => input.rooms.includes(room.name || room.room));
   if (selected.length !== new Set(input.rooms).size) throw new Error("ไม่พบห้องเรียนที่เลือกครบ");
   const path = `materials/${input.teacherId}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
-  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file, {
-    contentType: file.type,
-    upsert: false,
-  });
-  if (uploadError) throw new Error("อัปโหลดไฟล์สื่อไม่สำเร็จ กรุณาลองใหม่");
+  const { data: signed, error: uploadError } = await supabase.storage.from(BUCKET).createSignedUploadUrl(path);
+  if (uploadError || !signed?.signedUrl) throw new Error("เตรียมการอัปโหลดไม่สำเร็จ กรุณาลองใหม่");
+  input.onProgress?.({ phase: "uploading", percent: 0 });
+  await uploadWithProgress(signed.signedUrl, file, (percent) => input.onProgress?.({ phase: "uploading", percent }));
+  input.onProgress?.({ phase: "saving", percent: 100 });
   const { data: row, error: insertError } = await supabase.from("materials").insert({
     title,
     description: input.description.trim(),
