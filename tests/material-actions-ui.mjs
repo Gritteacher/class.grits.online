@@ -12,7 +12,7 @@ try {
   });
   browser = await chromium.launch({ channel: 'chrome' });
   const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jK1cAAAAASUVORK5CYII=', 'base64');
-  for (const width of [1280, 390]) for (const role of ['teacher', 'student']) {
+  for (const width of [1280, 390, 320]) for (const role of ['teacher', 'student']) {
     const context = await browser.newContext({ viewport: { width, height: 900 }, acceptDownloads: true });
     const page = await context.newPage();
     let downloads = 0;
@@ -32,19 +32,17 @@ try {
       }
     });
     await page.goto(`http://127.0.0.1:4331/tests/material-actions-fixture.html?role=${role}`);
-    await page.getByRole('button', { name: 'ดู บทเรียนทดสอบ', exact: true }).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.getByRole('dialog').getByRole('img', { name: 'lesson.png', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'ดู บทเรียนทดสอบ', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     assert.equal(downloads, 0);
     assert.equal(context.pages().length, 1);
-    await page.getByRole('button', { name: 'ปิด', exact: true }).click();
     const event = page.waitForEvent('download');
     await page.getByRole('button', { name: 'ดาวน์โหลด บทเรียนทดสอบ', exact: true }).click();
     const download = await event;
     assert.equal(download.suggestedFilename(), 'lesson.png');
     assert.equal(await download.failure(), null);
     assert.equal(context.pages().length, 1);
-    assert.equal(logs, role === 'student' ? 2 : 0);
+    assert.equal(logs, role === 'student' ? 1 : 0);
     failDownload = true;
     await page.getByRole('button', { name: 'ดาวน์โหลด บทเรียนทดสอบ', exact: true }).click();
     await expect(page.getByRole('alert')).toContainText('ดาวน์โหลดไฟล์ไม่สำเร็จ');
@@ -54,7 +52,7 @@ try {
     await page.screenshot({ path: `/tmp/material-actions-${role}-${width}.png`, fullPage: true });
     await context.close();
   }
-  console.log('Passed teacher/student desktop/mobile: view without downloading, named file download without new tab, access logs, failure recovery and responsive buttons.');
+  console.log('Passed teacher/student desktop/mobile: download-only materials without preview, named file download without new tab, access logs, failure recovery and responsive buttons.');
 } finally {
   await browser?.close();
   server.kill('SIGTERM');
