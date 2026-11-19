@@ -1,0 +1,11 @@
+<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wheel Test</title><div id="root"></div>
+<script type="module">
+import React from 'react';import{createRoot}from'react-dom/client';
+import{WheelPage}from'../src/rewards/WheelPage';import{StudentRewards,RewardBalance}from'../src/rewards/StudentRewards';
+import{emptyState}from'../src/model';import'../src/styles.css';import'../src/shell.css';
+const students=Array.from({length:40},(_,i)=>({id:`20000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`,classroomId:'30000000-0000-4000-8000-000000000001',code:String(i+1).padStart(5,'0'),name:`นักเรียนทดสอบ ${String(i+1).padStart(2,'0')}`,room:'ห้องชื่อซ้ำ',number:i+1,status:i===39?'archived':'active'}));
+students.push({id:'20000000-0000-4000-8000-000000000101',classroomId:'30000000-0000-4000-8000-000000000002',code:'00101',name:'นักเรียนอีกห้อง',room:'ห้องชื่อซ้ำ',number:1,status:'active'});
+const mode=new URLSearchParams(location.search).get('mode');
+const child=mode==='student'?React.createElement(StudentRewards,{studentId:students[0].id}):mode==='balance'?React.createElement(RewardBalance,{studentId:students[0].id,onOpen:()=>{}}):React.createElement(WheelPage,{state:{...emptyState(),rooms:['ห้องชื่อซ้ำ'],students},teacherId:'10000000-0000-4000-8000-000000000001',onPendingChange:()=>{}});
+createRoot(document.getElementById('root')).render(React.createElement('main',{className:'main-content',style:{maxWidth:1200,margin:'auto',padding:20}},child));
+</script></html>

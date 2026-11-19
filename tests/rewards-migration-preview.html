@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Wheel Migration Review</title>
+<style>body{font:16px system-ui;padding:24px}textarea{width:100%;height:75vh;font:13px monospace}</style>
+<h1>Wheel and Reinforcement Migration</h1>
+<label>SQL migration<textarea aria-label="SQL migration" readonly></textarea></label>
+<label>SQL security test<textarea aria-label="SQL security test" readonly></textarea></label>
+<script type="module">
+import sql from '../supabase/migrations/20261119033941_classroom_wheel_rewards.sql?raw';
+import test from './rewards-rls.sql?raw';
+document.querySelector('textarea').value=sql;
+document.querySelector('[aria-label="SQL security test"]').value=test;
+</script></html>

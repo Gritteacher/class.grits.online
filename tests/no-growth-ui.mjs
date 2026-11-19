@@ -35,6 +35,7 @@ try {
       if (url.pathname.endsWith('/classrooms')) body = url.searchParams.get('id')?.startsWith('eq.') ? classroom : [classroom];
       if (url.pathname.endsWith('/classroom_members')) body = [{ classroom_id: 'room1', student_id: student.id, student_number: 1 }];
       if (url.pathname.endsWith('/auth/v1/user')) body = {id,role:'authenticated',aud:'authenticated'};
+      if (url.pathname.endsWith('/rpc/student_reinforcement_summary')) body = {total:0,latest_id:null,latest_points:0,latest_at:null};
       if (url.pathname.endsWith('/student_avatar_customizations')) {
         if(route.request().method()==='POST'){
           avatarRow=route.request().postDataJSON();
@@ -46,6 +47,13 @@ try {
     });
     await page.goto('http://127.0.0.1:4330/');
     await expect(page.getByRole('navigation', { name: 'เมนูหลัก' })).toBeVisible();
+    await page.getByRole('button', { name: 'เมนูเพิ่มเติม', exact: true }).click();
+    await page.getByRole('menuitem', { name: role === 'teacher' ? 'วงล้อสุ่มนักเรียน' : 'แต้มเสริมแรง', exact: true }).click();
+    await expect(page.getByRole('heading', { name: role === 'teacher' ? 'วงล้อสุ่มนักเรียน' : 'แต้มเสริมแรง', exact: true })).toBeVisible();
+    if (role === 'teacher') await expect(page.getByRole('button', { name: 'เริ่มรอบสุ่ม', exact: true })).toBeEnabled();
+    else await expect(page.locator('.reward-balance-open strong')).toHaveText('0');
+    await page.screenshot({ path: `/tmp/wheel-shell-${role}-${width}.png`, fullPage: true });
+    await page.getByRole('button', { name: 'ห้องเรียนสังคมครูไต๋ หน้าหลัก', exact: true }).click();
     if (role === 'teacher') {
       await page.getByRole('button', { name: 'เมนูเพิ่มเติม', exact: true }).click();
       await expect(page.getByRole('menuitem', { name: 'รายงาน', exact: true })).toBeVisible();
@@ -101,7 +109,7 @@ try {
     await expect(page.getByText('การเติบโต', { exact: true })).toHaveCount(0);
     await expect(page.locator('.growth-page')).toHaveCount(0);
     await page.waitForLoadState('networkidle');
-    assert.deepEqual(requests.filter((url) => /growth|student_avatars(?:\?|$)|observation|reinforcement/.test(url)), []);
+    assert.deepEqual(requests.filter((url) => /growth|student_avatars(?:\?|$)|observation|reinforcement/.test(url) && !['/rest/v1/rpc/student_reinforcement_summary','/rest/v1/student_reinforcement_entries'].includes(url)), []);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.screenshot({ path: `/tmp/no-growth-${role}-${width}.png`, fullPage: true });
     await page.close();

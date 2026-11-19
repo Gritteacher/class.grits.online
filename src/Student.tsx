@@ -20,6 +20,7 @@ import { availability, dateTime, deadline } from "./work/model";
 import { getGrade, gradePoints } from "./grading/model";
 import { FilePreview } from "./components/FilePreview";
 import { StudentAvatar } from "./avatar/StudentAvatar";
+import { RewardBalance } from "./rewards/StudentRewards";
 
 export function StudentHome({
   student,
@@ -27,6 +28,7 @@ export function StudentHome({
   onSubmit,
   onPreview,
   onScores,
+  onRewards,
   tasksOnly = false,
   now,
 }: {
@@ -35,6 +37,7 @@ export function StudentHome({
   onSubmit: (a: Assignment) => void;
   onPreview: (s: Submission) => void;
   onScores: () => void;
+  onRewards?: () => void;
   tasksOnly?: boolean;
   now: number;
 }) {
@@ -63,6 +66,7 @@ export function StudentHome({
   return (
     <>
       {!tasksOnly && <StudentAvatar studentId={student.id} name={student.name} room={student.room} prominent />}
+      {!tasksOnly && <RewardBalance studentId={student.id} onOpen={onRewards} />}
       {tasksOnly && <div className="page-heading">
         <div>
           <p className="eyebrow">

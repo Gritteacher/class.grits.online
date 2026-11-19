@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Eye,
   Download,
+  Dices,
   File,
   FlaskConical,
   GraduationCap,
@@ -21,6 +22,7 @@ import {
   Plus,
   Palette,
   Send,
+  Sparkles,
   Sun,
   TrendingUp,
   Upload,
@@ -46,6 +48,7 @@ import { SchoolLogo } from "./components/SchoolLogo";
 import { Results, TeacherHome, Workspace } from "./Teacher";
 import { StudentHome } from "./Student";
 import { StudentAvatar } from "./avatar/StudentAvatar";
+import { StudentRewards } from "./rewards/StudentRewards";
 import { AttendancePage } from "./attendance/AttendancePage";
 import { renameRoom } from "./roster/model";
 import {
@@ -109,8 +112,9 @@ import {
 
 const RosterPage = lazy(() => import("./roster/RosterPage").then((module) => ({ default: module.RosterPage })));
 const ReportsPage = lazy(() => import("./reports/ReportsPage").then((module) => ({ default: module.ReportsPage })));
+const WheelPage = lazy(() => import("./rewards/WheelPage").then((module) => ({ default: module.WheelPage })));
 
-type Page = "today" | "workspace" | "results" | "roster" | "resources" | "reports" | "attendance" | "avatar";
+type Page = "today" | "workspace" | "results" | "roster" | "resources" | "reports" | "attendance" | "avatar" | "wheel" | "points";
 type Notice = { text: string; error?: boolean } | null;
 type ImportProgress = { completed: number; total: number; failed: number };
 type ImportJob = ImportProgress & { id: number; active: boolean; error?: boolean };
@@ -127,6 +131,7 @@ export function App() {
   const [loginRole, setLoginRole] = useState<"teacher" | "student">("student");
   const [page, setPage] = useState<Page>("today");
   const [attendancePending, setAttendancePending] = useState(false);
+  const [wheelPending, setWheelPending] = useState(false);
   const [activeId, setActiveId] = useState("");
   const [dark, setDark] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -335,6 +340,7 @@ export function App() {
     };
   }, [identity?.profile.id, identity?.profile.role]);
   function navigate(next: Page) {
+    if (wheelPending && next !== page) { setNotice({ text: "กรุณารอให้การสุ่มหรือบันทึกแต้มเสร็จก่อน", error: true }); return; }
     if (next !== page && attendancePending && !window.confirm("มีข้อมูลเช็คชื่อที่ยังไม่บันทึกหรือกำลังดำเนินการ ต้องการออกจากหน้านี้หรือไม่?")) return;
     setPage(next);
     setMoreOpen(false);
@@ -357,6 +363,7 @@ export function App() {
     navigate("today");
   }
   async function leaveAccount() {
+    if (wheelPending) { setNotice({ text: "กรุณารอให้การสุ่มหรือบันทึกแต้มเสร็จก่อน", error: true }); return; }
     if (attendancePending && !window.confirm("มีข้อมูลเช็คชื่อที่ยังไม่บันทึกหรือกำลังดำเนินการ ต้องการออกจากระบบหรือไม่?")) return;
     try {
       await signOut();
@@ -757,6 +764,7 @@ export function App() {
     { key: "resources" as Page, title: role === "teacher" ? "สื่อและประกาศ" : "สื่อการเรียนรู้", icon: BookOpen },
   ];
   const moreMenu = [
+    ...(role === "teacher" ? [{ key: "wheel" as Page, title: "วงล้อสุ่มนักเรียน", icon: Dices }] : [{ key: "points" as Page, title: "แต้มเสริมแรง", icon: Sparkles }]),
     { key: "attendance" as Page, title: "เช็คชื่อและการลา", icon: CheckCircle2 },
     { key: "avatar" as Page, title: "อวตาร์ของฉัน", icon: Palette },
     ...(role === "teacher" ? [
@@ -872,7 +880,11 @@ export function App() {
           <button type="button" onClick={() => setRosterRetry((value) => value + 1)}>โหลดรายชื่อใหม่</button>
         </div>}
         <Suspense fallback={<p role="status"><span className="loading-spinner" aria-hidden="true" /> กำลังโหลด...</p>}>
-        {page === "avatar" && identity ? (
+        {page === "wheel" && role === "teacher" ? (
+          <WheelPage state={state} teacherId={identity.profile.id} onPendingChange={setWheelPending} />
+        ) : page === "points" && role === "student" ? (
+          <StudentRewards studentId={identity.profile.id} />
+        ) : page === "avatar" && identity ? (
           <><div className="page-heading"><h1>อวตาร์ของฉัน</h1></div><StudentAvatar studentId={identity.profile.id} name={identity.profile.display_name} room={role === "teacher" ? "ครูผู้สอน" : student?.room ?? "นักเรียน"} /></>
         ) : page === "attendance" ? (
           <AttendancePage state={state} role={role} onPendingChange={setAttendancePending} />
@@ -935,6 +947,7 @@ export function App() {
           <Results state={state} studentOnly studentId={studentId} />
         ) : (
           student && <StudentHome
+            onRewards={() => navigate("points")}
             state={state}
             student={student}
             onSubmit={setSubmitTask}

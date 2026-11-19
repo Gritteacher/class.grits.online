@@ -27,9 +27,11 @@ import "./avatar.css";
 export function AvatarPortrait({
   value,
   className = "",
+  label = "อวตาร์ของฉัน",
 }: {
   value: Avatar;
   className?: string;
+  label?: string;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState("");
@@ -62,7 +64,7 @@ export function AvatarPortrait({
   ]);
   return (
     <div className={`avatar-portrait ${className}`}>
-      <canvas ref={ref} role="img" aria-label="อวตาร์ของฉัน" />
+      <canvas ref={ref} role="img" aria-label={label} />
       {loading && (
         <span className="avatar-loading">
           <span className="loading-spinner" />
