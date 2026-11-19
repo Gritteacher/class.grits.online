@@ -1,6 +1,7 @@
 import { supabase } from "../lib/supabase";
 import { trackedFetch as fetch } from "../lib/activity";
 import type { Assignment, Submission } from "../model";
+import { submissionError } from "./submissionError";
 
 function isoOrNull(value?: string) {
   return value && Number.isFinite(Date.parse(value)) ? value : null;
@@ -86,7 +87,7 @@ export async function submitWorkToSupabase(
       contentType: submission.file.type,
       upsert: false,
     });
-    if (error) throw new Error("อัปโหลดไฟล์ส่งงานไม่สำเร็จ กรุณาลองใหม่");
+    if (error) throw submissionError("upload", error);
   }
   const { data: previous } = await supabase
     .from("submissions")
@@ -114,7 +115,7 @@ export async function submitWorkToSupabase(
   );
   if (error) {
     if (filePath) await supabase.storage.from("classroom-files").remove([filePath]);
-    throw new Error("บันทึกการส่งงานไม่สำเร็จ กรุณาลองใหม่");
+    throw submissionError("save", error);
   }
   if (previous?.file_path && previous.file_path !== filePath) {
     await supabase.storage.from("classroom-files").remove([previous.file_path]);
@@ -131,7 +132,7 @@ export async function submitGroupWorkToSupabase(studentId: string, assignment: A
     filePath = `submissions/${studentId}/${assignment.id}/${crypto.randomUUID()}-${safeName}`;
     const blob = await fetch(submission.file.data).then((response) => response.blob());
     const { error } = await supabase.storage.from("classroom-files").upload(filePath, blob, { contentType: submission.file.type, upsert: false });
-    if (error) throw new Error("อัปโหลดไฟล์ส่งงานไม่สำเร็จ กรุณาลองใหม่");
+    if (error) throw submissionError("upload", error);
   }
   const response = await fetch("/api/create-group-submission", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ assignmentId: assignment.id, memberIds: submission.groupMemberIds, groupId: submission.groupId, response: submission.response, link: submission.link, filePath, fileName: submission.file?.name, fileType: submission.file?.type, submittedAt: submission.submittedAt }) });
   const payload = await response.json().catch(() => ({}));

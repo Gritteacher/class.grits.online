@@ -1250,16 +1250,24 @@ export function App() {
             const assignment = state.assignments.find((a) => a.id === submitTask.id);
             if (!assignment) return false;
             if (identity?.profile.role === "student") {
+              let next = assignment.submissionMode === "group"
+                ? submitGroupWork(state, { ...s, studentId: student.id })
+                : submitWork(state, { ...s, studentId: student.id });
               try {
                 if (assignment.submissionMode === "group") await submitGroupWorkToSupabase(identity.profile.id, assignment, s);
                 else await submitWorkToSupabase(identity.profile.id, assignment, s);
               } catch (error) {
-                setNotice({
-                  text: error instanceof Error ? error.message : "ส่งงานจริงไม่สำเร็จ",
-                  error: true,
-                });
-                return false;
+                throw error instanceof Error ? error : new Error("ส่งงานจริงไม่สำเร็จ กรุณาลองใหม่");
               }
+              // The server is authoritative; a full browser cache cannot undo a saved submission.
+              try {
+                next = applyWorkData(state, await loadWork(identity.profile.id, "student"));
+                try { persist(next); } catch { /* Cache is optional after a confirmed server save. */ }
+              } catch { /* Keep the submitted file in memory, never cache its base64 payload. */ }
+              setState(next);
+              setNotice({ text: "ส่งงานแล้ว ครูจะเห็นงานในคิวรอตรวจ" });
+              setSubmitTask(null);
+              return true;
             }
             if (
               commit(
@@ -1943,7 +1951,7 @@ function SubmitWork({
       });
       if (!saved)
         setError(
-          "ส่งงานไม่สำเร็จ ข้อมูลยังไม่ถูกบันทึก กรุณาตรวจพื้นที่จัดเก็บหรือลองไฟล์เล็กลง",
+          "ยังส่งงานไม่สำเร็จ กรุณาลองใหม่ ไฟล์ที่เลือกยังอยู่",
         );
     } catch (e) {
       setError(e instanceof Error ? e.message : "ส่งงานไม่สำเร็จ");
