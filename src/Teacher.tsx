@@ -527,6 +527,15 @@ export function Workspace({
                 ),
               )}
             </div>
+            <div className="review-queue-bar" hidden={assignment.submissionRequired === false}>
+              <div>
+                <strong>
+                  {tab === "pending" ? "คิวที่ต้องตรวจ" : tab === "reviewed" ? "งานที่ตรวจแล้ว" : tab === "returned" ? "งานที่ส่งกลับแก้ไข" : "รายชื่อที่ยังไม่ส่ง"}
+                </strong>
+                <span>{tab === "missing" ? missing.length : visible.length} รายการ</span>
+              </div>
+              <small>{tab === "pending" ? "เลือกหลายรายการเพื่อให้คะแนนและส่งความคิดเห็นพร้อมกัน" : "กดดูงานเพื่อเปิดรายละเอียดฉบับเต็ม"}</small>
+            </div>
             <div
               className="review-content"
               hidden={assignment.submissionRequired === false}

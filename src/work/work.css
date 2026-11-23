@@ -197,3 +197,23 @@
 .room-schedule .form-columns { margin-bottom: 12px; }
 .room-schedule input { min-width: 0; max-width: 100%; }
 .room-deadline { display: block; margin-bottom: 6px; }
+
+@media (max-width: 600px) {
+  .work-detail .review-row {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    min-height: 92px;
+  }
+  .work-detail .review-row .student-info {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .work-detail .review-row .work-row-actions {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .work-detail .review-row .score-input,
+  .work-detail .review-row .reviewed-score {
+    grid-column: 3;
+    grid-row: 2;
+  }
+}
