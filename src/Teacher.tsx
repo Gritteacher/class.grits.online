@@ -245,6 +245,10 @@ export function Workspace({
   const [selected, setSelected] = useState<string[]>([]);
   const [scores, setScores] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState("");
+  const totalGroups = assignmentGroups(state.assignments).length;
+  const pendingTotal = state.submissions.filter((s) => s.status === "pending").length;
+  const returnedTotal = state.submissions.filter((s) => s.status === "returned").length;
+  const activeStudentTotal = students.filter((student) => student.status === "active").length;
   const groups = assignmentGroups(state.assignments).filter(
     (group) =>
       (room === "all" || group.some((a) => a.rooms.includes(room))) &&
@@ -285,8 +289,15 @@ export function Workspace({
   const selectedVisible = selected.filter((id) =>
     visible.some((s) => s.id === id),
   );
+  const activeRoomNames = assignment
+    ? room === "all"
+      ? assignment.rooms
+      : [room]
+    : [];
+  const activeRoomSchedules = activeRoomNames.map((name) => assignmentForRoom(assignment!, name));
   function selectAssignment(id: string) {
     setActiveId(id);
+    setTab("pending");
     setSelected([]);
     setScores({});
     setFeedback("");
@@ -321,6 +332,33 @@ export function Workspace({
           มอบหมายงาน
         </button>
       </div>
+      <section className="workspace-overview" aria-label="สรุปพื้นที่งาน">
+        <div className="workspace-overview-intro">
+          <span className="eyebrow">ภาพรวมวันนี้</span>
+          <strong>จัดการงานได้จากที่เดียว</strong>
+          <small>เลือกงานจากรายการ แล้วตรวจงานหรือให้คะแนนได้ทันที</small>
+        </div>
+        <div className="workspace-stat">
+          <span>งานทั้งหมด</span>
+          <strong>{totalGroups}</strong>
+          <small>กลุ่มงาน</small>
+        </div>
+        <div className="workspace-stat is-attention">
+          <span>รอตรวจ</span>
+          <strong>{pendingTotal}</strong>
+          <small>รายการส่งงาน</small>
+        </div>
+        <div className="workspace-stat is-returned">
+          <span>รอแก้ไข</span>
+          <strong>{returnedTotal}</strong>
+          <small>รายการส่งกลับ</small>
+        </div>
+        <div className="workspace-stat">
+          <span>นักเรียนที่ดูแล</span>
+          <strong>{activeStudentTotal}</strong>
+          <small>กำลังเรียนอยู่</small>
+        </div>
+      </section>
       <div className="workbench">
         <aside className="work-list">
           <div className="work-list-filters">
@@ -347,8 +385,9 @@ export function Workspace({
               </select>
             </label>
           </div>
-          <div className="list-caption">
-            กลุ่มงานทั้งหมด <span>{assignments.length}</span>
+          <div className="list-caption workspace-list-caption">
+            <span>งานของคุณ</span>
+            <span>{assignments.length} กลุ่ม</span>
           </div>
           <div className="assignment-list">
             {assignments.map((a) => {
@@ -395,49 +434,55 @@ export function Workspace({
         </aside>
         {assignment ? (
           <section className="work-detail" aria-label="รายละเอียดงาน">
-            <div className="detail-title">
-              <AssignmentIcon assignment={assignment} />
-              <div>
-                <p className="eyebrow">
-                  {assignment.category}
-                </p>
-                <h2>{assignment.title}</h2>
+            <div className="workspace-detail-header">
+              <div className="detail-title">
+                <AssignmentIcon assignment={assignment} />
+                <div>
+                  <p className="eyebrow">{assignment.category}</p>
+                  <h2>{assignment.title}</h2>
+                </div>
+                <span className="max-score">
+                  <strong>{assignment.finalMax}</strong>คะแนนเก็บ
+                </span>
               </div>
-              <span className="max-score">
-                <strong>{assignment.finalMax}</strong>คะแนนเก็บ
-              </span>
-            </div>
-            <p className="assignment-description">{assignment.description}</p>
-            <div className="work-detail-actions">
-              <span className="work-window">
-                {(room === "all" ? assignment.rooms : [room]).map((name) => {
-                  const scheduled = assignmentForRoom(assignment, name);
-                  return <span className="room-deadline" key={name}>{name} · กำหนดส่ง {dateTime(deadline(scheduled))} · {availability(scheduled, now).label}</span>;
-                })}
-              </span>
-              <button
-                className="button neutral"
-                onClick={() => onEdit(assignment)}
-              >
-                <Pencil size={16} />
-                แก้ไขงาน
-              </button>
-              <button
-                className="button neutral"
-                onClick={() => onDelete(assignment)}
-                aria-label={`ลบงาน ${assignment.title}`}
-              >
-                ลบงาน
-              </button>
-            </div>
-            <div className="assignment-metadata">
-              <span>
-                <Users size={16} />
-                {assignment.rooms[0]}
-              </span>
-              <span>
-                ดิบ {assignment.rawMax} → เก็บ {assignment.finalMax}
-              </span>
+              <p className="assignment-description">{assignment.description}</p>
+              <div className="workspace-detail-toolbar">
+                <div className="work-window">
+                  <div className="workspace-room-chips">
+                    {activeRoomNames.slice(0, 4).map((name) => (
+                      <span className="workspace-room-chip" key={name}>{name}</span>
+                    ))}
+                    {activeRoomNames.length > 4 && (
+                      <span className="workspace-room-more">+ อีก {activeRoomNames.length - 4} ห้อง</span>
+                    )}
+                  </div>
+                  <small>
+                    {activeRoomSchedules.length > 0 && activeRoomSchedules.every((scheduled) => deadline(scheduled) === deadline(activeRoomSchedules[0]))
+                      ? `กำหนดส่ง ${dateTime(deadline(activeRoomSchedules[0]))}`
+                      : activeRoomSchedules.length > 0 ? "กำหนดส่งแตกต่างกันตามห้องเรียน" : "ยังไม่กำหนดส่ง"}
+                  </small>
+                  <details className="workspace-room-details">
+                    <summary>ดูเวลาของแต่ละห้อง</summary>
+                    {activeRoomNames.map((name) => {
+                      const scheduled = assignmentForRoom(assignment, name);
+                      return <span className="room-deadline" key={name}>{name} · {dateTime(deadline(scheduled))} · {availability(scheduled, now).label}</span>;
+                    })}
+                  </details>
+                </div>
+                <div className="workspace-detail-actions">
+                  <button className="button neutral" onClick={() => onEdit(assignment)}>
+                    <Pencil size={16} />
+                    แก้ไขงาน
+                  </button>
+                  <button className="button neutral" onClick={() => onDelete(assignment)} aria-label={`ลบงาน ${assignment.title}`}>
+                    ลบงาน
+                  </button>
+                </div>
+              </div>
+              <div className="assignment-metadata">
+                <span><Users size={16} /> {activeRoomNames.length} ห้องเรียน</span>
+                <span>ดิบ {assignment.rawMax} → เก็บ {assignment.finalMax}</span>
+              </div>
             </div>
             {assignment.submissionRequired === false && (
               <div className="score-only-callout">
@@ -449,7 +494,7 @@ export function Workspace({
               </div>
             )}
             <div
-              className="review-tabs"
+              className="review-tabs workspace-review-tabs"
               role="tablist"
               aria-label="สถานะงาน"
               hidden={assignment.submissionRequired === false}
